@@ -12,6 +12,7 @@ body{margin:0;font-family:system-ui;background:#0b0c10;color:#e9eef6}
 label{display:block;margin:10px 0 6px;font-size:12px;color:#a8b3d6}
 input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #262b3a;background:#0f1118;color:#fff}
 button{width:100%;padding:14px;border-radius:12px;border:1px solid #7a1f1f;background:#b22222;color:#fff;font-weight:800}
+button:hover{background:#d32f2f}
 .big{font-size:34px;font-weight:900}
 .net{margin-top:14px;padding:14px;border:1px solid #222634;border-radius:14px;background:#0f1118}
 .grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr)}
@@ -23,6 +24,7 @@ button{width:100%;padding:14px;border-radius:12px;border:1px solid #7a1f1f;backg
 table{width:100%;border-collapse:collapse;margin-top:10px}
 th,td{padding:8px;border-bottom:1px solid #222634}
 th{font-size:12px;color:#a8b3d6}
+.hint{margin-top:10px;color:#ffcc66;font-size:12px;display:none}
 </style>
 </head>
 
@@ -80,13 +82,14 @@ th{font-size:12px;color:#a8b3d6}
 
   <div class="col-2">
     <label>Poids brut (kg)</label>
-    <input id="brut" type="number" step="0.1" value="0">
+    <input id="brut" type="number" step="0.1" value="" placeholder="Ex: 120.5">
   </div>
 
   <div class="col-12">
     <div class="net">
       <div>Tare : <b id="tare">0</b> kg</div>
       <div class="big">Net : <span id="net">0</span> kg</div>
+      <div id="warn" class="hint">⚠️ Le brut est inférieur à la tare : net forcé à 0.</div>
     </div>
   </div>
 
@@ -116,10 +119,10 @@ th{font-size:12px;color:#a8b3d6}
 <script>
 /* ================= CONFIG ================= */
 
-// 🔐 PIN (change si tu veux)
+// 🔐 PIN
 const PIN = "2580";
 
-// 🌐 TON APPS SCRIPT (DÉJÀ RENSEIGNÉ)
+// 🌐 APPS SCRIPT
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxw6o5ETWDo1PhWue9WlMs8IWojkV1ugxb3ICe7qse85IWwrtf7mrqehPKdc2x8noIo/exec";
 
 // 🔑 CLÉ (doit être la même que dans Apps Script)
@@ -140,13 +143,27 @@ function checkPin(){
 const T={PAM:59,ASL:45,ABJ:43,FRIGO:0,HF:0};
 const A={PAM:"PAM",ASL:"ASL",ABJ:"ABJ",FRIGO:"F",HF:"HF"};
 
-function calc(){
-  const n=Number(nb.value);
-  const b=Number(brut.value||0);
-  const t=T[type.value]*n;
-  tare.textContent=t;
-  net.textContent=(b-t).toFixed(1);
+function num(x){
+  const v = Number(String(x).replace(",", "."));
+  return Number.isFinite(v) ? v : 0;
 }
+function r1(x){ return Math.round(x*10)/10; }
+
+function calc(){
+  const n = Number(nb.value);
+  const b = num(brut.value);
+  const t = (T[type.value]||0) * n;
+
+  tare.textContent = r1(t);
+
+  let nnet = b - t;
+  const neg = nnet < 0;
+  if (neg) nnet = 0;
+
+  net.textContent = r1(nnet);
+  warn.style.display = neg ? "block" : "none";
+}
+
 ["change","input"].forEach(e=>{
   type.addEventListener(e,calc);
   nb.addEventListener(e,calc);
@@ -154,46 +171,95 @@ function calc(){
 });
 
 async function save(){
-  const n=Number(nb.value);
-  const b=Number(brut.value);
-  const t=T[type.value]*n;
+  calc();
+  const n = Number(nb.value);
+  const b = num(brut.value);
+  const t = (T[type.value]||0) * n;
+  const nnet = Math.max(0, b - t);
 
-  await fetch(SCRIPT_URL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      key:API_KEY,
-      date:new Date().toLocaleString(),
-      ville:ville.value,
-      type:A[type.value],
-      nb:n,
-      brut:b,
-      tare:t,
-      net:(b-t).toFixed(1)
-    })
-  });
+  if (b <= 0) { alert("Entre un poids brut."); return; }
+  if (b < t) { alert("Brut inférieur à la tare. Corrige le brut."); return; }
 
-  render();
+  const payload = {
+    key: API_KEY,
+    date: new Date().toLocaleString(),
+    ville: ville.value,
+    type: A[type.value],
+    nb: n,
+    brut: r1(b),
+    tare: r1(t),
+    net: r1(nnet)
+  };
+
+  try{
+    const res = await fetch(SCRIPT_URL,{
+      method:"POST",
+      mode:"cors",
+      redirect:"follow",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+
+    const txt = await res.text();
+    // tente JSON, sinon affiche l'erreur
+    let data;
+    try { data = JSON.parse(txt); } catch { data = { ok:false, error: txt }; }
+
+    if(!data.ok){
+      alert("Erreur envoi Sheets: " + (data.error || "inconnue"));
+      return;
+    }
+
+    await render();
+    resetForm(false);
+  }catch(err){
+    alert("Erreur réseau: " + err);
+  }
 }
 
 async function render(){
-  hist.innerHTML="<tr><td colspan='5'>Chargement...</td></tr>";
-  const r=await fetch(`${SCRIPT_URL}?key=${API_KEY}`);
-  const d=await r.json();
-  hist.innerHTML="";
-  d.rows.forEach(e=>{
-    hist.innerHTML+=`
-      <tr>
-        <td>${e.date}</td>
-        <td>${e.ville}</td>
-        <td>${e.type}</td>
-        <td>${e.nb}</td>
-        <td>${e.net}</td>
-      </tr>`;
-  });
+  hist.innerHTML = "<tr><td colspan='5'>Chargement…</td></tr>";
+  try{
+    const url = `${SCRIPT_URL}?key=${encodeURIComponent(API_KEY)}`;
+    const res = await fetch(url,{ method:"GET", mode:"cors", redirect:"follow" });
+    const txt = await res.text();
+
+    let data;
+    try { data = JSON.parse(txt); }
+    catch {
+      hist.innerHTML = "<tr><td colspan='5'>Erreur: réponse non JSON (Apps Script)</td></tr>";
+      return;
+    }
+
+    if(!data.ok){
+      hist.innerHTML = `<tr><td colspan='5'>Erreur: ${data.error || "inconnue"}</td></tr>`;
+      return;
+    }
+
+    hist.innerHTML = "";
+    (data.rows || []).forEach(e=>{
+      hist.innerHTML += `
+        <tr>
+          <td>${e.date ?? ""}</td>
+          <td>${e.ville ?? ""}</td>
+          <td>${e.type ?? ""}</td>
+          <td>${e.nb ?? ""}</td>
+          <td>${e.net ?? ""}</td>
+        </tr>`;
+    });
+  }catch(err){
+    hist.innerHTML = `<tr><td colspan='5'>Erreur réseau: ${String(err)}</td></tr>`;
+  }
 }
 
-function resetForm(){brut.value=0;calc();}
+function resetForm(clearVille=true){
+  // on garde la ville sélectionnée
+  type.value="PAM";
+  nb.value="1";
+  brut.value="";
+  calc();
+}
+
 calc();
 </script>
 
