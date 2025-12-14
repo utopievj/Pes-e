@@ -11,8 +11,7 @@ body{margin:0;font-family:system-ui;background:#0b0c10;color:#e9eef6}
 .card{background:#12141b;border:1px solid #222634;border-radius:16px;padding:16px}
 label{display:block;margin:10px 0 6px;font-size:12px;color:#a8b3d6}
 input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #262b3a;background:#0f1118;color:#fff}
-button{width:100%;padding:12px;border-radius:12px;border:1px solid #7a1f1f;background:#b22222;color:#fff;font-weight:700}
-button:hover{background:#d32f2f}
+button{width:100%;padding:14px;border-radius:12px;border:1px solid #7a1f1f;background:#b22222;color:#fff;font-weight:800;font-size:16px}
 .big{font-size:34px;font-weight:900}
 .net{margin-top:14px;padding:14px;border:1px solid #222634;border-radius:14px;background:#0f1118}
 .grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr)}
@@ -31,25 +30,22 @@ th{font-size:12px;color:#a8b3d6}
 
 <body>
 
-<!-- 🔐 LOGIN -->
+<!-- 🔐 ÉCRAN PIN -->
 <div id="login" style="min-height:100vh;display:flex;align-items:center;justify-content:center">
-<div class="card" style="max-width:360px;width:100%">
-<h2 style="text-align:center">Connexion</h2>
+<div class="card" style="max-width:300px;width:100%">
+<h2 style="text-align:center">Code PIN</h2>
 
-<label>Identifiant</label>
-<input id="user">
+<input id="pinInput" type="password" inputmode="numeric" placeholder="••••">
 
-<label>Mot de passe</label>
-<input id="pass" type="password">
+<button onclick="checkPin()">ENTRER</button>
 
-<button onclick="login()">SE CONNECTER</button>
 <div id="err" style="color:#ff5a6a;text-align:center;margin-top:10px;display:none">
-Identifiant ou mot de passe incorrect
+Code incorrect
 </div>
 </div>
 </div>
 
-<!-- 🧮 APP -->
+<!-- 🧮 APPLICATION -->
 <div id="app" style="display:none">
 <div class="wrap">
 <div class="card">
@@ -82,9 +78,7 @@ Identifiant ou mot de passe incorrect
 
 <div class="col-2">
 <label>Nombre</label>
-<select id="nb">
-<option>1</option><option>2</option><option>3</option><option>4</option>
-</select>
+<select id="nb"><option>1</option><option>2</option><option>3</option><option>4</option></select>
 </div>
 
 <div class="col-2">
@@ -118,17 +112,20 @@ Identifiant ou mot de passe incorrect
 </div>
 
 <script>
-/* 🔐 LOGIN */
-const USER="pesee", PASS="1234";
-function login(){
- if(user.value===USER && pass.value===PASS){
-  loginDiv.style.display="none"; app.style.display="block";
- } else err.style.display="block";
-}
-const loginDiv=document.getElementById("login");
-const app=document.getElementById("app");
+/* 🔐 CODE PIN À MODIFIER ICI */
+const PIN = "2580";
 
-/* 🧮 APP */
+/* LOGIN */
+function checkPin(){
+  if(pinInput.value === PIN){
+    login.style.display="none";
+    app.style.display="block";
+  } else {
+    err.style.display="block";
+  }
+}
+
+/* APP */
 const T={PAM:59,ASL:45,ABJ:43,FRIGO:0,HF:0};
 const A={PAM:"PAM",ASL:"ASL",ABJ:"ABJ",FRIGO:"F",HF:"HF"};
 const KEY="pesee_hist";
@@ -146,33 +143,21 @@ function calc(){
 
 function save(){
  const d=JSON.parse(localStorage.getItem(KEY)||"[]");
- d.push({
-  id:crypto.randomUUID(),
-  date:new Date().toLocaleString(),
-  ville:ville.value,
-  type:A[type.value],
-  nb:nb.value,
-  net:net.textContent
- });
+ d.push({id:crypto.randomUUID(),date:new Date().toLocaleString(),ville:ville.value,type:A[type.value],nb:nb.value,net:net.textContent});
  localStorage.setItem(KEY,JSON.stringify(d));
  render();
 }
-
 function render(){
  hist.innerHTML="";
- (JSON.parse(localStorage.getItem(KEY)||"")).slice().reverse().forEach(e=>{
+ JSON.parse(localStorage.getItem(KEY)||"[]").slice().reverse().forEach(e=>{
   hist.innerHTML+=`<tr>
-   <td>${e.date}</td><td>${e.ville}</td><td>${e.type}</td>
-   <td>${e.nb}</td><td>${e.net}</td>
-   <td><button class="small danger" onclick="del('${e.id}')">X</button></td>
+  <td>${e.date}</td><td>${e.ville}</td><td>${e.type}</td>
+  <td>${e.nb}</td><td>${e.net}</td>
+  <td><button class="small danger" onclick="del('${e.id}')">X</button></td>
   </tr>`;
  });
 }
-
-function del(id){
- localStorage.setItem(KEY,JSON.stringify(JSON.parse(localStorage.getItem(KEY)).filter(e=>e.id!==id)));
- render();
-}
+function del(id){localStorage.setItem(KEY,JSON.stringify(JSON.parse(localStorage.getItem(KEY)).filter(e=>e.id!==id)));render();}
 function clearAll(){if(confirm("Tout effacer ?")){localStorage.removeItem(KEY);render();}}
 function reset(){brut.value=0;calc();}
 calc();render();
