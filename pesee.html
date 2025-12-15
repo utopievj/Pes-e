@@ -70,6 +70,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
         <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
         <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
         <button class="smallBtn" onclick="loadData()">🔄 Rafraîchir</button>
+        <button class="smallBtn" onclick="syncPending()">⟳ SYNC (<span id="pendingCount">0</span>)</button>
         <button class="smallBtn" onclick="logout()">🚪 Déconnexion</button>
         <span class="badge" id="badgeUser">Connecté</span>
         <span class="badge" id="badgeNet">Réseau : ?</span>
@@ -81,6 +82,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
       <!-- PAGE PESÉE -->
       <div id="pagePesee">
         <h2>Pesée</h2>
+        <p class="muted">Si hors-ligne ou Supabase en erreur → la pesée est stockée en “En attente”, puis SYNC.</p>
 
         <div class="grid">
           <div class="col-4">
@@ -168,7 +170,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
             <button class="smallBtn" onclick="buildRecap()">Afficher</button>
           </div>
           <div class="col-6" style="display:flex;align-items:end">
-            <div class="muted">Totaux Net (kg) par type et par ville.</div>
+            <div class="muted">Totaux Net (kg) par type et par ville (depuis Supabase).</div>
           </div>
         </div>
 
@@ -194,8 +196,22 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
 
         <hr>
 
+        <!-- En attente -->
+        <h3>En attente (hors-ligne)</h3>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Ville</th><th>Type</th><th class="right">Nb</th><th class="right">Net</th><th class="right">Action</th></tr>
+            </thead>
+            <tbody id="pendingTable"></tbody>
+          </table>
+        </div>
+        <p class="muted">Clique “SYNC” pour envoyer les lignes en attente vers Supabase.</p>
+
+        <hr>
+
         <!-- Liste -->
-        <h3>Liste des pesées</h3>
+        <h3>Liste des pesées (Supabase)</h3>
         <div class="tableWrap">
           <table>
             <thead>
@@ -225,6 +241,9 @@ const T = { PAM:59, ASL:45, ABJ:43, FRIGO:0, HF:0 };
 const A = { PAM:"PAM", ASL:"ASL", ABJ:"ABJ", FRIGO:"F", HF:"HF" };
 const TYPES = ["PAM","ASL","ABJ","F","HF"];
 
+/* OFFLINE QUEUE */
+const PENDING_KEY = "pesees_pending_v2";
+
 const $ = (id)=>document.getElementById(id);
 const r1 = (x)=>Math.round(x*10)/10;
 const num = (x)=>{ const v=Number(String(x).replace(",", ".")); return Number.isFinite(v)?v:0; };
@@ -238,16 +257,17 @@ function setLoginMsg(msg){ $("loginMsg").textContent = msg || ""; }
 function refreshNetwork(){
   $("badgeNet").textContent = "Réseau : " + (navigator.onLine ? "OK" : "HORS-LIGNE");
 }
-window.addEventListener("online", refreshNetwork);
+window.addEventListener("online", ()=>{ refreshNetwork(); syncPending(); });
 window.addEventListener("offline", refreshNetwork);
 
+/* Admin UI */
 function setAdminUI(){
   $("badgeAdmin").textContent = isAdminUser ? "ADMIN" : "Utilisateur";
   $("adminPanel").style.display = isAdminUser ? "block" : "none";
   $("thAdmin").style.display = isAdminUser ? "table-cell" : "none";
 }
 
-/* Admin check côté Supabase */
+/* Admin check */
 async function checkAdmin(){
   const { data, error } = await supabase.rpc("is_admin");
   if(error) throw error;
@@ -263,6 +283,7 @@ function show(p){
     buildRecap();
     loadCities();
     loadData();
+    renderPending();
   }
 }
 
@@ -280,6 +301,106 @@ function calc(){
   $("brut").addEventListener(ev, calc);
 });
 
+/* ---- OFFLINE QUEUE HELPERS ---- */
+function getPending(){
+  try{ return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); }
+  catch{ return []; }
+}
+function setPending(arr){
+  localStorage.setItem(PENDING_KEY, JSON.stringify(arr));
+  $("pendingCount").textContent = String(arr.length);
+}
+function addPending(row){
+  const arr = getPending();
+  arr.unshift(row);
+  setPending(arr);
+}
+function removePending(client_id){
+  const arr = getPending().filter(x=>x.client_id !== client_id);
+  setPending(arr);
+}
+function renderPending(){
+  const arr = getPending();
+  $("pendingCount").textContent = String(arr.length);
+
+  const tb = $("pendingTable");
+  tb.innerHTML = "";
+  if(!arr.length){
+    tb.innerHTML = `<tr><td colspan="6" class="muted">Aucune ligne en attente</td></tr>`;
+    return;
+  }
+  arr.forEach(x=>{
+    tb.innerHTML += `
+      <tr>
+        <td>${new Date(x.local_created_at).toLocaleString()}</td>
+        <td>${x.ville}</td>
+        <td>${x.type}</td>
+        <td class="right">${x.nb}</td>
+        <td class="right">${x.net}</td>
+        <td class="right">
+          <button class="smallBtn danger" onclick="deletePending('${x.client_id}')">Suppr</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+function deletePending(client_id){
+  if(!confirm("Supprimer cette ligne en attente ?")) return;
+  removePending(client_id);
+  renderPending();
+}
+
+/* SYNC pending -> Supabase */
+async function syncPending(){
+  const arr = getPending();
+  $("pendingCount").textContent = String(arr.length);
+  if(!arr.length) return;
+
+  if(!navigator.onLine){
+    setStatus("Hors-ligne : SYNC impossible.");
+    return;
+  }
+
+  const { data: u } = await supabase.auth.getUser();
+  if(!u?.user){
+    setStatus("Connecte-toi pour SYNC.");
+    return;
+  }
+
+  setStatus("SYNC… ("+arr.length+" en attente)");
+  let ok = 0;
+
+  // on envoie du plus ancien au plus récent
+  const toSend = [...arr].reverse();
+
+  for(const row of toSend){
+    try{
+      const payload = {
+        ville: row.ville,
+        type: row.type,
+        nb: row.nb,
+        brut: row.brut,
+        tare: row.tare,
+        net: row.net
+      };
+      const { error } = await supabase.from("pesees").insert(payload);
+      if(error) throw error;
+
+      ok++;
+      removePending(row.client_id);
+    }catch(e){
+      setStatus("❌ SYNC arrêté : " + (e?.message || String(e)));
+      renderPending();
+      return;
+    }
+  }
+
+  renderPending();
+  setStatus("✅ SYNC terminé : "+ok+" envoyées");
+  await loadData();
+  await buildRecap();
+}
+
 /* Login / logout */
 async function login(){
   try{
@@ -294,7 +415,7 @@ async function login(){
     const { data } = await supabase.auth.getUser();
     currentUser = data?.user || null;
 
-    isAdminUser = await checkAdmin();
+    try { isAdminUser = await checkAdmin(); } catch { isAdminUser = false; }
     setAdminUI();
 
     $("badgeUser").textContent = currentUser?.email ? ("Connecté : " + currentUser.email) : "Connecté";
@@ -305,9 +426,13 @@ async function login(){
     await loadData();
 
     if(!$("recapDate").value) $("recapDate").value = ymdToday();
-    show("pesee");
     setLoginMsg("");
     setStatus("✅ Connecté");
+
+    // tentative sync auto à la connexion
+    syncPending();
+
+    show("pesee");
   }catch(e){
     setLoginMsg("❌ " + (e?.message || String(e)));
   }
@@ -392,7 +517,7 @@ async function deleteCity(id, nom){
   }
 }
 
-/* Enregistrer (✅ reste sur PESÉE, ne va pas dans l'historique) */
+/* ✅ Enregistrer : tente Supabase, sinon met en attente (et reste sur PESÉE) */
 async function saveSafe(){
   try{
     calc();
@@ -417,28 +542,57 @@ async function saveSafe(){
     );
     if(!ok) return;
 
+    const payload = {
+      ville, type, nb,
+      brut: r1(brut),
+      tare: r1(tare),
+      net: r1(net)
+    };
+
     setStatus("Insertion…");
-    const { error } = await supabase.from("pesees").insert({
+
+    // ✅ tentative envoi
+    const { error } = await supabase.from("pesees").insert(payload);
+    if(error) throw error;
+
+    // ok
+    $("brut").value = "";
+    calc();
+
+    setStatus("✅ Enregistré");
+    await loadData();
+    await buildRecap();
+    show("pesee"); // ✅ reste sur Pesée
+  }catch(e){
+    // ❌ si Supabase KO -> on met en attente
+    const nb = Number($("nb").value);
+    const brut = num($("brut").value);
+    const tare = (T[$("type").value] || 0) * nb;
+    const net = Math.max(0, brut - tare);
+    const ville = ($("ville").value || "").trim();
+    const type = A[$("type").value];
+
+    const client_id = "p_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+
+    addPending({
+      client_id,
+      local_created_at: Date.now(),
       ville, type, nb,
       brut: r1(brut),
       tare: r1(tare),
       net: r1(net)
     });
-    if(error) throw error;
 
     $("brut").value = "";
     calc();
 
-    setStatus("✅ Enregistré");
-    await loadData();      // garde l'historique à jour
-    await buildRecap();    // met à jour le récap du jour si besoin
-    show("pesee");         // ✅ reste sur la page pesée
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
+    setStatus("⚠️ Hors-ligne / erreur : enregistré EN ATTENTE. Clique SYNC.");
+    renderPending();
+    show("pesee");
   }
 }
 
-/* Historique */
+/* Historique (Supabase) */
 async function loadData(){
   try{
     const { data, error } = await supabase
@@ -503,7 +657,7 @@ async function clearAll(){
   }
 }
 
-/* --- RÉCAP JOUR / VILLE / TYPE --- */
+/* --- RÉCAP JOUR / VILLE / TYPE (Supabase) --- */
 function ymdToday(){
   const d=new Date();
   const y=d.getFullYear();
@@ -524,9 +678,10 @@ function dayRangeISO(ymd){
 
 async function buildRecap(){
   try{
-    if(!$("recapDate")) return; // si pas sur la page hist
+    if(!$("recapDate")) return;
     const date = $("recapDate").value || ymdToday();
     $("recapDate").value = date;
+
     const { startISO, endISO } = dayRangeISO(date);
 
     const { data, error } = await supabase
@@ -593,6 +748,10 @@ async function buildRecap(){
 /* Auto session */
 (async ()=>{
   refreshNetwork();
+  setPending(getPending());
+  renderPending();
+  calc();
+
   const { data } = await supabase.auth.getUser();
   if(data?.user){
     currentUser = data.user;
@@ -606,9 +765,16 @@ async function buildRecap(){
 
     await loadCities();
     await loadData();
-    if($("recapDate")) $("recapDate").value = ymdToday();
+    $("recapDate").value = ymdToday();
     buildRecap();
+
+    // sync auto au démarrage si possible
+    syncPending();
+
     show("pesee");
+  }else{
+    // pas connecté -> on montre le pendingCount quand même (utile)
+    $("pendingCount").textContent = String(getPending().length);
   }
 })();
 
