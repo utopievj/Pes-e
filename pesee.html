@@ -392,7 +392,7 @@ async function deleteCity(id, nom){
   }
 }
 
-/* Enregistrer */
+/* Enregistrer (✅ reste sur PESÉE, ne va pas dans l'historique) */
 async function saveSafe(){
   try{
     calc();
@@ -430,9 +430,9 @@ async function saveSafe(){
     calc();
 
     setStatus("✅ Enregistré");
-    await loadData();
-    if(!$("recapDate").value) $("recapDate").value = ymdToday();
-    show("hist");
+    await loadData();      // garde l'historique à jour
+    await buildRecap();    // met à jour le récap du jour si besoin
+    show("pesee");         // ✅ reste sur la page pesée
   }catch(e){
     setStatus("❌ " + (e?.message || String(e)));
   }
@@ -524,6 +524,7 @@ function dayRangeISO(ymd){
 
 async function buildRecap(){
   try{
+    if(!$("recapDate")) return; // si pas sur la page hist
     const date = $("recapDate").value || ymdToday();
     $("recapDate").value = date;
     const { startISO, endISO } = dayRangeISO(date);
@@ -584,8 +585,8 @@ async function buildRecap(){
     }).join("");
 
   }catch(e){
-    $("recapAll").innerHTML = `<tr><td colspan="6">Erreur: ${(e?.message||String(e))}</td></tr>`;
-    $("recapByCity").innerHTML = "";
+    if($("recapAll")) $("recapAll").innerHTML = `<tr><td colspan="6">Erreur: ${(e?.message||String(e))}</td></tr>`;
+    if($("recapByCity")) $("recapByCity").innerHTML = "";
   }
 }
 
@@ -605,7 +606,7 @@ async function buildRecap(){
 
     await loadCities();
     await loadData();
-    $("recapDate").value = ymdToday();
+    if($("recapDate")) $("recapDate").value = ymdToday();
     buildRecap();
     show("pesee");
   }
