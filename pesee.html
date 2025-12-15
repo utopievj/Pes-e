@@ -12,22 +12,16 @@
 
 <style>
 /* === UI PRO ULTRA CLEAN === */
-body{
-  margin:0;
-  font-family:system-ui;
-  background:#0b0c10;
-  color:#fff;
-}
+body{margin:0;font-family:system-ui;background:#0b0c10;color:#fff}
 .wrap{max-width:900px;margin:auto;padding:16px}
 .card{background:#12141b;border-radius:16px;padding:16px}
 .grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr)}
-.col-12{grid-column:span 12}
-.col-6{grid-column:span 6}
-.col-4{grid-column:span 4}
-.col-2{grid-column:span 2}
+.col-12{grid-column:span 12}.col-6{grid-column:span 6}.col-4{grid-column:span 4}.col-2{grid-column:span 2}
 @media(max-width:820px){.col-6,.col-4,.col-2{grid-column:span 12}}
 
-label{display:block;font-size:14px;margin-bottom:4px}
+h2{margin:0 0 12px 0}
+label{display:block;font-size:14px;margin:8px 0 4px}
+
 input,select{
   width:100%;
   padding:14px;
@@ -36,9 +30,11 @@ input,select{
   border:1px solid #333;
   background:#0f1118;
   color:#fff;
+  box-sizing:border-box;
 }
 
 button{
+  width:100%;
   padding:16px;
   font-size:18px;
   font-weight:800;
@@ -49,25 +45,18 @@ button{
 }
 button:hover{background:#d32f2f}
 
-.smallBtn{padding:10px;font-size:14px}
+.rowBtns{display:flex;gap:8px;flex-wrap:wrap}
+.smallBtn{width:auto;padding:10px 14px;font-size:14px;border-radius:12px}
 .danger{background:#8b0000}
 
-.big{
-  font-size:48px;
-  font-weight:900;
-  margin:10px 0;
-}
-
+.big{font-size:48px;font-weight:900;margin:10px 0}
 table{width:100%;border-collapse:collapse}
-th,td{padding:10px;border-bottom:1px solid #222;text-align:left}
+th,td{padding:10px;border-bottom:1px solid #222;text-align:left;white-space:nowrap}
 th{font-size:14px}
 .right{text-align:right}
-
 .hidden{display:none}
 
-/* SUPPRESSION TOTALE DES TEXTES INUTILES */
-.muted,.tag,#status,hr{display:none}
-.badge{display:none}
+#loginMsg{margin-top:10px;font-size:14px;color:#ffd27a;white-space:pre-wrap}
 </style>
 </head>
 
@@ -77,11 +66,16 @@ th{font-size:14px}
 <div id="loginScreen" class="wrap">
   <div class="card">
     <h2>Connexion</h2>
-    <input id="email" type="email" placeholder="Email">
-    <br><br>
-    <input id="password" type="password" placeholder="Mot de passe">
-    <br><br>
+
+    <label>Email</label>
+    <input id="email" type="email" autocomplete="username" placeholder="email">
+
+    <label>Mot de passe</label>
+    <input id="password" type="password" autocomplete="current-password" placeholder="mot de passe">
+
+    <div style="height:12px"></div>
     <button onclick="login()">SE CONNECTER</button>
+
     <div id="loginMsg"></div>
   </div>
 </div>
@@ -90,7 +84,7 @@ th{font-size:14px}
 <div id="app" class="wrap hidden">
   <div class="card">
 
-    <div style="display:flex;gap:8px;margin-bottom:12px">
+    <div class="rowBtns" style="margin-bottom:12px">
       <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
       <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
       <button class="smallBtn" onclick="syncPending()">SYNC (<span id="pendingCount">0</span>)</button>
@@ -118,12 +112,14 @@ th{font-size:14px}
 
         <div class="col-2">
           <label>Nb</label>
-          <select id="nb"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+          <select id="nb">
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+          </select>
         </div>
 
         <div class="col-2">
-          <label>Brut</label>
-          <input id="brut" type="number" step="0.1">
+          <label>Brut (kg)</label>
+          <input id="brut" type="number" step="0.1" inputmode="decimal" placeholder="0">
         </div>
 
         <div class="col-12">
@@ -140,7 +136,12 @@ th{font-size:14px}
     <div id="pageHist" class="hidden">
       <table>
         <thead>
-          <tr><th>Date</th><th>Ville</th><th>Type</th><th class="right">Net</th></tr>
+          <tr>
+            <th>Date</th>
+            <th>Ville</th>
+            <th>Type</th>
+            <th class="right">Net</th>
+          </tr>
         </thead>
         <tbody id="hist"></tbody>
       </table>
@@ -150,116 +151,164 @@ th{font-size:14px}
 </div>
 
 <script>
-/* === SUPABASE === */
+/* === SUPABASE (URL + KEY OK) === */
 const supabase = window.supabase.createClient(
   "https://dzfokswsmkvhjhziqakj.supabase.co",
-  "TON_PUBLIC_ANON_KEY"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0"
 );
 
-const TARE={PAM:59,ASL:45,ABJ:43,FRIGO:0,HF:0};
-const MAP={FRIGO:"F",HF:"HF"};
+const $ = id => document.getElementById(id);
+const PENDING_KEY = "pending_pesees_v1";
 
-const $=id=>document.getElementById(id);
-const num=x=>Number(x)||0;
-const PENDING_KEY="pending_pesees";
+const TARE = { PAM:59, ASL:45, ABJ:43, FRIGO:0, HF:0 };
+const MAP  = { FRIGO:"F", HF:"HF" };
 
-/* UI */
 function show(p){
-  $("pagePesee").classList.toggle("hidden",p!=="pesee");
-  $("pageHist").classList.toggle("hidden",p!=="hist");
+  $("pagePesee").classList.toggle("hidden", p!=="pesee");
+  $("pageHist").classList.toggle("hidden", p!=="hist");
   if(p==="hist") loadData();
 }
 
-/* CALCUL */
+function getPending(){ try{return JSON.parse(localStorage.getItem(PENDING_KEY)||"[]")}catch{return[]} }
+function setPending(arr){ localStorage.setItem(PENDING_KEY, JSON.stringify(arr)); $("pendingCount").textContent = String(arr.length); }
+
 function calc(){
-  const nb=num($("nb").value);
-  const brut=num($("brut").value);
-  const t=TARE[$("type").value]*nb;
-  $("net").textContent=Math.max(0,brut-t).toFixed(1);
+  const nb = Number($("nb").value);
+  const brut = Number(String($("brut").value).replace(",", "."));
+  const tare = (TARE[$("type").value] || 0) * nb;
+  const net = Math.max(0, (Number.isFinite(brut)?brut:0) - tare);
+  $("net").textContent = (Math.round(net*10)/10).toFixed(1);
 }
+
 ["change","input"].forEach(e=>{
-  $("type").addEventListener(e,calc);
-  $("nb").addEventListener(e,calc);
-  $("brut").addEventListener(e,calc);
+  $("type").addEventListener(e, calc);
+  $("nb").addEventListener(e, calc);
+  $("brut").addEventListener(e, calc);
 });
 
-/* OFFLINE */
-function getPending(){return JSON.parse(localStorage.getItem(PENDING_KEY)||"[]")}
-function setPending(a){localStorage.setItem(PENDING_KEY,JSON.stringify(a));$("pendingCount").textContent=a.length}
-
-/* SAVE */
 async function saveSafe(){
   calc();
-  const payload={
-    client_id:"p_"+Date.now(),
-    ville:$("ville").value,
-    type:MAP[$("type").value]||$("type").value,
-    nb:num($("nb").value),
-    brut:num($("brut").value),
-    tare:TARE[$("type").value]*num($("nb").value),
-    net:num($("net").textContent)
+  const nb = Number($("nb").value);
+  const brut = Number(String($("brut").value).replace(",", "."));
+  if(!Number.isFinite(brut) || brut<=0) return;
+
+  const typeKey = $("type").value;
+  const tare = (TARE[typeKey] || 0) * nb;
+  const net = Math.max(0, brut - tare);
+
+  const payload = {
+    client_id: "p_" + Date.now() + "_" + Math.random().toString(16).slice(2),
+    ville: $("ville").value,
+    type: MAP[typeKey] || typeKey,
+    nb,
+    brut: Math.round(brut*10)/10,
+    tare: Math.round(tare*10)/10,
+    net: Math.round(net*10)/10
   };
+
   try{
-    await supabase.from("pesees").upsert(payload,{onConflict:"client_id"});
+    const { error } = await supabase
+      .from("pesees")
+      .upsert(payload, { onConflict: "client_id" });
+    if(error) throw error;
   }catch{
-    const p=getPending();p.push(payload);setPending(p);
+    const p = getPending();
+    p.push(payload);
+    setPending(p);
   }
-  $("brut").value="";calc();
+
+  $("brut").value = "";
+  calc();
 }
 
-/* SYNC */
 async function syncPending(){
-  const p=getPending();
-  for(const r of p){
-    await supabase.from("pesees").upsert(r,{onConflict:"client_id"});
+  const p = getPending();
+  if(!p.length) return;
+
+  for(const row of p){
+    const { error } = await supabase
+      .from("pesees")
+      .upsert(row, { onConflict: "client_id" });
+    if(error) return; // on stoppe si erreur
   }
   setPending([]);
 }
 
-/* DATA */
 async function loadData(){
-  const {data}=await supabase.from("pesees").select("*").order("created_at",{ascending:false}).limit(200);
-  $("hist").innerHTML=data.map(r=>`
+  const { data, error } = await supabase
+    .from("pesees")
+    .select("created_at, ville, type, net")
+    .order("created_at", { ascending:false })
+    .limit(300);
+
+  if(error){
+    $("hist").innerHTML = "";
+    return;
+  }
+
+  $("hist").innerHTML = (data||[]).map(r => `
     <tr>
       <td>${new Date(r.created_at).toLocaleString()}</td>
       <td>${r.ville}</td>
       <td>${r.type}</td>
       <td class="right">${r.net}</td>
-    </tr>`).join("");
+    </tr>
+  `).join("");
 }
 
-/* LOGIN */
-async function login(){
-  const {error}=await supabase.auth.signInWithPassword({
-    email:$("email").value,
-    password:$("password").value
-  });
-  if(!error){
-    $("loginScreen").classList.add("hidden");
-    $("app").classList.remove("hidden");
-    loadCities();show("pesee");
+async function loadCities(){
+  const { data, error } = await supabase
+    .from("villes")
+    .select("nom")
+    .order("nom", { ascending:true })
+    .limit(500);
+
+  if(error){
+    $("ville").innerHTML = "<option>—</option>";
+    return;
   }
+  $("ville").innerHTML = (data||[]).map(v => `<option>${v.nom}</option>`).join("");
 }
+
+async function login(){
+  const msg = $("loginMsg");
+  msg.textContent = "Connexion…";
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email: $("email").value.trim(),
+    password: $("password").value
+  });
+
+  if(error){
+    msg.textContent = "❌ " + error.message;
+    return;
+  }
+
+  msg.textContent = "";
+  $("loginScreen").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  await loadCities();
+  show("pesee");
+  await syncPending();
+}
+
 async function logout(){
   await supabase.auth.signOut();
   location.reload();
 }
 
-/* VILLES */
-async function loadCities(){
-  const {data}=await supabase.from("villes").select("nom").order("nom");
-  $("ville").innerHTML=data.map(v=>`<option>${v.nom}</option>`).join("");
-}
-
-/* AUTO */
 (async()=>{
-  const {data}=await supabase.auth.getUser();
-  if(data.user){
+  setPending(getPending());
+  calc();
+
+  const { data } = await supabase.auth.getUser();
+  if(data?.user){
     $("loginScreen").classList.add("hidden");
     $("app").classList.remove("hidden");
-    loadCities();show("pesee");
+    await loadCities();
+    show("pesee");
+    await syncPending();
   }
-  setPending(getPending());
 })();
 </script>
 </body>
