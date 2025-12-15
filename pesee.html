@@ -38,14 +38,14 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
 
 <body>
 
-<!-- LOGIN D'ABORD -->
+<!-- ✅ LOGIN D'ABORD -->
 <div id="loginScreen" class="center">
   <div class="card max420">
     <h2 style="margin-top:0">Connexion</h2>
     <p class="muted">Email + mot de passe (Supabase). Après connexion, accès à l’application.</p>
 
     <label>Email</label>
-    <input id="loginEmail" type="email" placeholder="ex: comptoir@sirmet.local" autocomplete="username">
+    <input id="loginEmail" type="email" placeholder="ex: boyrieanthony2@gmail.com" autocomplete="username">
 
     <label>Mot de passe</label>
     <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password">
@@ -59,7 +59,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
   </div>
 </div>
 
-<!-- APP -->
+<!-- ✅ APP -->
 <div id="app" style="display:none">
   <div class="wrap">
     <div class="card">
@@ -152,6 +152,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
           </div>
         </div>
 
+        <!-- ADMIN PANEL -->
         <div id="adminPanel" style="display:none">
           <hr>
           <h3>Admin</h3>
@@ -205,9 +206,9 @@ const SUPABASE_URL = "https://dzfokswsmkvhjhziqakj.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0";
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* ✅ EMAILS ADMINS (mets le/les tiens ici) */
+/* ✅ ADMINS */
 const ADMIN_EMAILS = [
-  "TONEMAILADMIN@exemple.com"
+  "boyrieanthony2@gmail.com"
 ];
 
 /* TARAGES */
@@ -219,13 +220,12 @@ const $ = (id)=>document.getElementById(id);
 const r1 = (x)=>Math.round(x*10)/10;
 const num = (x)=>{ const v=Number(String(x).replace(",", ".")); return Number.isFinite(v)?v:0; };
 
-let currentFilterDate = ""; // YYYY-MM-DD ou ""
+let currentFilterDate = "";
 let currentUser = null;
 let isAdminUser = false;
 
 function setStatus(msg){ $("status").textContent = msg || ""; }
 function setLoginMsg(msg){ $("loginMsg").textContent = msg || ""; }
-
 function setBadge(){
   $("badgeFilter").textContent = currentFilterDate ? ("Filtre : " + currentFilterDate) : "Filtre : aucun";
 }
@@ -243,7 +243,7 @@ function goFull(){
   else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
 }
 
-/* Affichage */
+/* Show login/app */
 function showLogin(){
   $("loginScreen").style.display = "flex";
   $("app").style.display = "none";
@@ -252,6 +252,8 @@ function showApp(){
   $("loginScreen").style.display = "none";
   $("app").style.display = "block";
 }
+
+/* Navigation */
 function show(p){
   $("pagePesee").style.display = (p==="pesee") ? "block" : "none";
   $("pageHist").style.display  = (p==="hist")  ? "block" : "none";
@@ -313,7 +315,7 @@ async function logout(){
   }
 }
 
-/* Enregistrer */
+/* Save */
 async function save(){
   try{
     calc();
@@ -347,7 +349,7 @@ async function save(){
   }
 }
 
-/* Filtre date */
+/* Date filter */
 function localDayRangeISO(yyyy_mm_dd){
   const [y,m,d] = yyyy_mm_dd.split("-").map(Number);
   const startLocal = new Date(y, m-1, d, 0,0,0,0);
@@ -378,7 +380,7 @@ function clearFilter(){
   loadData();
 }
 
-/* Récap */
+/* Recap */
 function renderRecap(rows){
   const recap = {};
   rows.forEach(r=>{
@@ -430,7 +432,7 @@ function renderRecap(rows){
   `;
 }
 
-/* Admin actions */
+/* Admin delete */
 async function deleteRow(id){
   if(!isAdminUser) return alert("Admin uniquement");
   if(!confirm("Supprimer cette ligne ?")) return;
@@ -459,7 +461,7 @@ async function clearAll(){
   }
 }
 
-/* Charger données */
+/* Load data */
 async function loadData(){
   try{
     setStatus("Chargement…");
@@ -481,8 +483,10 @@ async function loadData(){
 
     const tb = $("hist");
     tb.innerHTML = "";
+    const colspan = isAdminUser ? 6 : 5;
+
     if(!data || data.length===0){
-      tb.innerHTML = `<tr><td colspan="${isAdminUser ? 6 : 5}" style="color:#a8b3d6">Aucune donnée</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="${colspan}" style="color:#a8b3d6">Aucune donnée</td></tr>`;
     } else {
       data.forEach(e=>{
         tb.innerHTML += `<tr>
@@ -503,7 +507,7 @@ async function loadData(){
   }
 }
 
-/* Init: login d'abord */
+/* Init */
 setBadge();
 calc();
 showLogin();
