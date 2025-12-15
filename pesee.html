@@ -84,14 +84,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
         <div class="grid">
           <div class="col-4">
             <label>Ville</label>
-            <select id="ville">
-              <option>Boulanger Tarbes</option>
-              <option>Pau</option>
-              <option>Envie</option>
-              <option>Assat</option>
-              <option>Coaraze</option>
-              <option>Espoey</option>
-            </select>
+            <select id="ville"></select>
           </div>
 
           <div class="col-4">
@@ -152,10 +145,34 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
           </div>
         </div>
 
-        <!-- ADMIN PANEL (affiché seulement si admin) -->
+        <!-- ADMIN PANEL -->
         <div id="adminPanel" style="display:none">
           <hr>
-          <h3>Admin</h3>
+          <h3>Admin – Villes</h3>
+
+          <div class="grid">
+            <div class="col-6">
+              <label>Ajouter une ville</label>
+              <input id="newCity" type="text" placeholder="Ex: Toulouse">
+            </div>
+            <div class="col-6" style="display:flex;align-items:end;gap:8px;flex-wrap:wrap">
+              <button class="smallBtn" onclick="addCity()">➕ Ajouter</button>
+              <button class="smallBtn" onclick="loadCities()">🔄 Recharger villes</button>
+            </div>
+
+            <div class="col-12">
+              <div class="tableWrap">
+                <table>
+                  <thead><tr><th>Ville</th><th class="right">Action</th></tr></thead>
+                  <tbody id="citiesAdmin"></tbody>
+                </table>
+              </div>
+              <p class="muted">⚠️ Supprimer une ville ne supprime pas les pesées existantes (elles garderont l’ancien nom).</p>
+            </div>
+          </div>
+
+          <hr>
+          <h3>Admin – Historique</h3>
           <button class="smallBtn danger" onclick="clearAll()">🧹 Vider tout l’historique</button>
           <p class="muted">⚠️ Action irréversible.</p>
         </div>
@@ -202,7 +219,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
 </div>
 
 <script>
-/* ✅ SUPABASE (TES INFOS) */
+/* ✅ SUPABASE */
 const SUPABASE_URL = "https://dzfokswsmkvhjhziqakj.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0";
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -219,6 +236,7 @@ const num = (x)=>{ const v=Number(String(x).replace(",", ".")); return Number.is
 let currentFilterDate = "";
 let currentUser = null;
 let isAdminUser = false;
+let citiesCache = []; // [{id,nom}]
 
 function setStatus(msg){ $("status").textContent = msg || ""; }
 function setLoginMsg(msg){ $("loginMsg").textContent = msg || ""; }
@@ -232,7 +250,7 @@ function setAuthBadges(){
   $("thAdmin").style.display = isAdminUser ? "table-cell" : "none";
 }
 
-/* Plein écran Android */
+/* Plein écran */
 function goFull(){
   const el = document.documentElement;
   if (el.requestFullscreen) el.requestFullscreen();
@@ -240,20 +258,14 @@ function goFull(){
 }
 
 /* Show login/app */
-function showLogin(){
-  $("loginScreen").style.display = "flex";
-  $("app").style.display = "none";
-}
-function showApp(){
-  $("loginScreen").style.display = "none";
-  $("app").style.display = "block";
-}
+function showLogin(){ $("loginScreen").style.display="flex"; $("app").style.display="none"; }
+function showApp(){ $("loginScreen").style.display="none"; $("app").style.display="block"; }
 
 /* Navigation */
 function show(p){
   $("pagePesee").style.display = (p==="pesee") ? "block" : "none";
   $("pageHist").style.display  = (p==="hist")  ? "block" : "none";
-  if(p==="hist") loadData();
+  if(p==="hist") { loadCities(); loadData(); }
 }
 
 /* Calcul net */
@@ -271,14 +283,100 @@ function calc(){
   $("brut").addEventListener(ev, calc);
 });
 
-/* ✅ Admin check côté Supabase (pas dans le code) */
+/* ✅ Admin check côté Supabase */
 async function checkAdmin(){
   const { data, error } = await supabase.rpc("is_admin");
   if(error) throw error;
   return !!data;
 }
 
-/* Auth */
+/* ---- VILLES ---- */
+function renderCitiesSelect(){
+  const sel = $("ville");
+  sel.innerHTML = "";
+  if(!citiesCache.length){
+    sel.innerHTML = `<option>—</option>`;
+    return;
+  }
+  citiesCache.forEach(c=>{
+    const opt = document.createElement("option");
+    opt.value = c.nom;
+    opt.textContent = c.nom;
+    sel.appendChild(opt);
+  });
+}
+
+function renderCitiesAdmin(){
+  const tb = $("citiesAdmin");
+  tb.innerHTML = "";
+  if(!isAdminUser){
+    tb.innerHTML = `<tr><td colspan="2" class="muted">Admin uniquement</td></tr>`;
+    return;
+  }
+  if(!citiesCache.length){
+    tb.innerHTML = `<tr><td colspan="2" class="muted">Aucune ville</td></tr>`;
+    return;
+  }
+  citiesCache.forEach(c=>{
+    tb.innerHTML += `
+      <tr>
+        <td>${c.nom}</td>
+        <td class="right">
+          <button class="smallBtn danger" onclick="deleteCity(${c.id}, '${c.nom.replace(/'/g,"&#39;")}')">Suppr</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function loadCities(){
+  try{
+    const { data, error } = await supabase
+      .from("villes")
+      .select("id, nom")
+      .order("nom", { ascending:true })
+      .limit(200);
+    if(error) throw error;
+    citiesCache = data || [];
+    renderCitiesSelect();
+    renderCitiesAdmin();
+  }catch(e){
+    // si table pas encore créée ou droits, on montre juste erreur dans status
+    setStatus("❌ VILLES: " + (e?.message || String(e)));
+  }
+}
+
+async function addCity(){
+  if(!isAdminUser) return alert("Admin uniquement");
+  const name = ($("newCity").value || "").trim();
+  if(!name) return alert("Entre un nom de ville.");
+  try{
+    setStatus("Ajout ville…");
+    const { error } = await supabase.from("villes").insert({ nom: name });
+    if(error) throw error;
+    $("newCity").value = "";
+    setStatus("✅ Ville ajoutée");
+    await loadCities();
+  }catch(e){
+    setStatus("❌ " + (e?.message || String(e)));
+  }
+}
+
+async function deleteCity(id, nom){
+  if(!isAdminUser) return alert("Admin uniquement");
+  if(!confirm("Supprimer la ville : " + nom + " ?")) return;
+  try{
+    setStatus("Suppression ville…");
+    const { error } = await supabase.from("villes").delete().eq("id", id);
+    if(error) throw error;
+    setStatus("✅ Ville supprimée");
+    await loadCities();
+  }catch(e){
+    setStatus("❌ " + (e?.message || String(e)));
+  }
+}
+
+/* ---- AUTH ---- */
 async function login(){
   try{
     const email = $("loginEmail").value.trim();
@@ -298,6 +396,7 @@ async function login(){
     $("loginPassword").value = "";
 
     showApp();
+    await loadCities();
     show("pesee");
     setTimeout(goFull, 200);
   }catch(e){
@@ -311,6 +410,7 @@ async function logout(){
     await supabase.auth.signOut();
     currentUser = null;
     isAdminUser = false;
+    citiesCache = [];
     setStatus("✅ Déconnecté");
     showLogin();
   }catch(e){
@@ -318,7 +418,7 @@ async function logout(){
   }
 }
 
-/* Save */
+/* ---- SAVE ---- */
 async function save(){
   try{
     calc();
@@ -328,9 +428,12 @@ async function save(){
     if(b<=0) return alert("Entre un poids brut.");
     if(b<t)  return alert("Brut inférieur à la tare.");
 
+    const v = ($("ville").value || "").trim();
+    if(!v || v==="—") return alert("Choisis une ville.");
+
     setStatus("Insertion…");
     const payload = {
-      ville: $("ville").value,
+      ville: v,
       type: A[$("type").value],
       nb: n,
       brut: r1(b),
@@ -352,7 +455,7 @@ async function save(){
   }
 }
 
-/* Date filter */
+/* ---- FILTER DATE ---- */
 function localDayRangeISO(yyyy_mm_dd){
   const [y,m,d] = yyyy_mm_dd.split("-").map(Number);
   const startLocal = new Date(y, m-1, d, 0,0,0,0);
@@ -366,24 +469,11 @@ function todayYYYYMMDD(){
   const d = String(now.getDate()).padStart(2,"0");
   return `${y}-${m}-${d}`;
 }
-function applyFilter(){
-  const v = $("dateFilter").value;
-  currentFilterDate = v || "";
-  setBadge();
-  loadData();
-}
-function todayFilter(){
-  $("dateFilter").value = todayYYYYMMDD();
-  applyFilter();
-}
-function clearFilter(){
-  $("dateFilter").value = "";
-  currentFilterDate = "";
-  setBadge();
-  loadData();
-}
+function applyFilter(){ currentFilterDate = $("dateFilter").value || ""; setBadge(); loadData(); }
+function todayFilter(){ $("dateFilter").value = todayYYYYMMDD(); applyFilter(); }
+function clearFilter(){ $("dateFilter").value = ""; currentFilterDate=""; setBadge(); loadData(); }
 
-/* Recap */
+/* ---- RECAP ---- */
 function renderRecap(rows){
   const recap = {};
   rows.forEach(r=>{
@@ -435,7 +525,7 @@ function renderRecap(rows){
   `;
 }
 
-/* Admin delete */
+/* ---- ADMIN HIST ---- */
 async function deleteRow(id){
   if(!isAdminUser) return alert("Admin uniquement");
   if(!confirm("Supprimer cette ligne ?")) return;
@@ -449,7 +539,6 @@ async function deleteRow(id){
     setStatus("❌ " + (e?.message || String(e)));
   }
 }
-
 async function clearAll(){
   if(!isAdminUser) return alert("Admin uniquement");
   if(!confirm("⚠️ Vider TOUT l’historique ?")) return;
@@ -464,7 +553,7 @@ async function clearAll(){
   }
 }
 
-/* Load data */
+/* ---- LOAD DATA ---- */
 async function loadData(){
   try{
     setStatus("Chargement…");
@@ -510,12 +599,12 @@ async function loadData(){
   }
 }
 
-/* Init */
+/* ---- INIT ---- */
 setBadge();
 calc();
 showLogin();
 
-/* Si session déjà active, skip login */
+/* session existante -> skip login */
 (async ()=>{
   const { data } = await supabase.auth.getUser();
   if(data?.user){
@@ -523,6 +612,7 @@ showLogin();
     try { isAdminUser = await checkAdmin(); } catch { isAdminUser = false; }
     setAuthBadges();
     showApp();
+    await loadCities();
     show("hist");
     loadData();
   }
