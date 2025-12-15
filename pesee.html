@@ -30,159 +30,161 @@ th{font-size:12px;color:#a8b3d6;white-space:nowrap;text-align:left}
 .badge{display:inline-block;padding:4px 10px;border:1px solid #222634;border-radius:999px;font-size:12px;color:#a8b3d6}
 hr{border:0;border-top:1px solid #222634;margin:14px 0}
 .muted{color:#a8b3d6;font-size:12px}
+.center{min-height:90vh;display:flex;align-items:center;justify-content:center}
+.max420{max-width:420px;width:100%}
 </style>
 </head>
 
 <body>
-<div class="wrap">
-  <div class="card">
 
-    <!-- TOP BAR -->
-    <div class="grid" style="align-items:center">
-      <div class="col-12" style="display:flex;gap:8px;flex-wrap:wrap">
+<!-- ✅ PAGE LOGIN D'ABORD -->
+<div id="loginScreen" class="center">
+  <div class="card max420">
+    <h2 style="margin-top:0">Connexion</h2>
+    <p class="muted">Entre ton email et mot de passe (Supabase). Après connexion, tu accèdes à l’application.</p>
+
+    <label>Email</label>
+    <input id="loginEmail" type="email" placeholder="ex: comptoir@sirmet.local" autocomplete="username">
+
+    <label>Mot de passe</label>
+    <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password">
+
+    <div style="margin-top:12px;display:grid;gap:10px">
+      <button onclick="login()">SE CONNECTER</button>
+      <button class="smallBtn" onclick="goFull()">⛶ Plein écran</button>
+    </div>
+
+    <div id="loginMsg" style="margin-top:10px;font-size:12px;white-space:pre-wrap;color:#ffd27a"></div>
+  </div>
+</div>
+
+<!-- ✅ APP (cachée tant que pas connecté) -->
+<div id="app" style="display:none">
+  <div class="wrap">
+    <div class="card">
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
         <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
         <button class="smallBtn" onclick="loadData()">🔄 Rafraîchir</button>
         <button class="smallBtn" onclick="goFull()">⛶ Plein écran</button>
-        <button class="smallBtn" id="btnLogin" onclick="show('login')">🔐 Connexion</button>
-        <button class="smallBtn" id="btnLogout" style="display:none" onclick="logout()">🚪 Déconnexion</button>
-        <span class="badge" id="badgeAuth">Non connecté</span>
+        <button class="smallBtn" onclick="logout()">🚪 Déconnexion</button>
+        <span class="badge" id="badgeAuth">Connecté</span>
         <span class="badge" id="badgeFilter">Filtre : aucun</span>
       </div>
-    </div>
 
-    <div id="status">Prêt.</div>
+      <div id="status">Prêt.</div>
 
-    <!-- PAGE LOGIN -->
-    <div id="pageLogin" style="display:none">
-      <h2>Connexion</h2>
-      <p class="muted">Connexion Supabase (email + mot de passe). Une fois connecté, tu peux enregistrer des pesées.</p>
+      <!-- PAGE PESÉE -->
+      <div id="pagePesee">
+        <h2>Pesée</h2>
 
-      <div class="grid">
-        <div class="col-6">
-          <label>Email</label>
-          <input id="loginEmail" type="email" placeholder="ex: comptoir@sirmet.local" autocomplete="username">
-        </div>
-        <div class="col-6">
-          <label>Mot de passe</label>
-          <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password">
-        </div>
-        <div class="col-12">
-          <button onclick="login()">SE CONNECTER</button>
+        <div class="grid">
+          <div class="col-4">
+            <label>Ville</label>
+            <select id="ville">
+              <option>Boulanger Tarbes</option>
+              <option>Pau</option>
+              <option>Envie</option>
+              <option>Assat</option>
+              <option>Coaraze</option>
+              <option>Espoey</option>
+            </select>
+          </div>
+
+          <div class="col-4">
+            <label>Type</label>
+            <select id="type">
+              <option value="PAM">PAM</option>
+              <option value="ASL">ASL</option>
+              <option value="ABJ">ABJ</option>
+              <option value="FRIGO">Frigo</option>
+              <option value="HF">Hors froid</option>
+            </select>
+          </div>
+
+          <div class="col-2">
+            <label>Nb</label>
+            <select id="nb"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+          </div>
+
+          <div class="col-2">
+            <label>Brut (kg)</label>
+            <input id="brut" type="number" step="0.1" placeholder="Ex: 120.5">
+          </div>
+
+          <div class="col-12">
+            <div class="net">
+              <div>Tare : <b id="tare">0</b> kg</div>
+              <div class="big">Net : <span id="net">0</span> kg</div>
+              <div id="warn" class="warn">⚠️ Brut inférieur à la tare</div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <button onclick="save()">ENREGISTRER</button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- PAGE PESÉE -->
-    <div id="pagePesee" style="display:none">
-      <h2>Pesée</h2>
-      <p class="muted">⚠️ Enregistrement possible uniquement si tu es connecté.</p>
+      <!-- PAGE HIST -->
+      <div id="pageHist" style="display:none">
+        <h2>Historique</h2>
 
-      <div class="grid">
-        <div class="col-4">
-          <label>Ville</label>
-          <select id="ville">
-            <option>Boulanger Tarbes</option>
-            <option>Pau</option>
-            <option>Envie</option>
-            <option>Assat</option>
-            <option>Coaraze</option>
-            <option>Espoey</option>
-          </select>
-        </div>
-
-        <div class="col-4">
-          <label>Type</label>
-          <select id="type">
-            <option value="PAM">PAM</option>
-            <option value="ASL">ASL</option>
-            <option value="ABJ">ABJ</option>
-            <option value="FRIGO">Frigo</option>
-            <option value="HF">Hors froid</option>
-          </select>
-        </div>
-
-        <div class="col-2">
-          <label>Nb</label>
-          <select id="nb"><option>1</option><option>2</option><option>3</option><option>4</option></select>
-        </div>
-
-        <div class="col-2">
-          <label>Brut (kg)</label>
-          <input id="brut" type="number" step="0.1" placeholder="Ex: 120.5">
-        </div>
-
-        <div class="col-12">
-          <div class="net">
-            <div>Tare : <b id="tare">0</b> kg</div>
-            <div class="big">Net : <span id="net">0</span> kg</div>
-            <div id="warn" class="warn">⚠️ Brut inférieur à la tare</div>
+        <div class="grid">
+          <div class="col-4">
+            <label>Date (jour)</label>
+            <input id="dateFilter" type="date">
+          </div>
+          <div class="col-2" style="display:flex;align-items:end">
+            <button class="smallBtn" onclick="applyFilter()">Filtrer</button>
+          </div>
+          <div class="col-2" style="display:flex;align-items:end">
+            <button class="smallBtn" onclick="todayFilter()">Aujourd’hui</button>
+          </div>
+          <div class="col-2" style="display:flex;align-items:end">
+            <button class="smallBtn" onclick="clearFilter()">Tout</button>
+          </div>
+          <div class="col-2" style="display:flex;align-items:end">
+            <button class="smallBtn" onclick="goFull()">⛶ Plein écran</button>
           </div>
         </div>
 
-        <div class="col-12">
-          <button onclick="save()">ENREGISTRER</button>
+        <hr>
+
+        <h3>Récap par ville et par type (sur le filtre)</h3>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ville</th>
+                <th class="right">PAM</th>
+                <th class="right">ASL</th>
+                <th class="right">ABJ</th>
+                <th class="right">F</th>
+                <th class="right">HF</th>
+                <th class="right">TOTAL</th>
+              </tr>
+            </thead>
+            <tbody id="recap"></tbody>
+            <tfoot id="recapFoot"></tfoot>
+          </table>
+        </div>
+
+        <hr>
+
+        <h3>Liste des pesées (sur le filtre)</h3>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Ville</th><th>Type</th><th>Nb</th><th class="right">Net</th></tr>
+            </thead>
+            <tbody id="hist"></tbody>
+          </table>
         </div>
       </div>
+
     </div>
-
-    <!-- PAGE HISTORIQUE -->
-    <div id="pageHist">
-      <h2>Historique</h2>
-
-      <div class="grid">
-        <div class="col-4">
-          <label>Date (jour)</label>
-          <input id="dateFilter" type="date">
-        </div>
-        <div class="col-2" style="display:flex;align-items:end">
-          <button class="smallBtn" onclick="applyFilter()">Filtrer</button>
-        </div>
-        <div class="col-2" style="display:flex;align-items:end">
-          <button class="smallBtn" onclick="todayFilter()">Aujourd’hui</button>
-        </div>
-        <div class="col-2" style="display:flex;align-items:end">
-          <button class="smallBtn" onclick="clearFilter()">Tout</button>
-        </div>
-        <div class="col-2" style="display:flex;align-items:end">
-          <button class="smallBtn" onclick="goFull()">⛶ Plein écran</button>
-        </div>
-      </div>
-
-      <hr>
-
-      <h3>Récap par ville et par type (sur le filtre)</h3>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Ville</th>
-              <th class="right">PAM</th>
-              <th class="right">ASL</th>
-              <th class="right">ABJ</th>
-              <th class="right">F</th>
-              <th class="right">HF</th>
-              <th class="right">TOTAL</th>
-            </tr>
-          </thead>
-          <tbody id="recap"></tbody>
-          <tfoot id="recapFoot"></tfoot>
-        </table>
-      </div>
-
-      <hr>
-
-      <h3>Liste des pesées (sur le filtre)</h3>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr><th>Date</th><th>Ville</th><th>Type</th><th>Nb</th><th class="right">Net</th></tr>
-          </thead>
-          <tbody id="hist"></tbody>
-        </table>
-      </div>
-    </div>
-
   </div>
 </div>
 
@@ -204,19 +206,12 @@ const num = (x)=>{ const v=Number(String(x).replace(",", ".")); return Number.is
 let currentFilterDate = ""; // YYYY-MM-DD ou ""
 
 function setStatus(msg){ $("status").textContent = msg || ""; }
+function setLoginMsg(msg){ $("loginMsg").textContent = msg || ""; }
 function setBadge(){
   $("badgeFilter").textContent = currentFilterDate ? ("Filtre : " + currentFilterDate) : "Filtre : aucun";
 }
 function setAuthBadge(user){
-  if(user){
-    $("badgeAuth").textContent = "Connecté : " + (user.email || "ok");
-    $("btnLogin").style.display = "none";
-    $("btnLogout").style.display = "inline-block";
-  } else {
-    $("badgeAuth").textContent = "Non connecté";
-    $("btnLogin").style.display = "inline-block";
-    $("btnLogout").style.display = "none";
-  }
+  $("badgeAuth").textContent = user?.email ? ("Connecté : " + user.email) : "Connecté";
 }
 
 /* Plein écran Android */
@@ -226,9 +221,18 @@ function goFull(){
   else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
 }
 
+/* Affichage login/app */
+function showLogin(){
+  $("loginScreen").style.display = "flex";
+  $("app").style.display = "none";
+}
+function showApp(){
+  $("loginScreen").style.display = "none";
+  $("app").style.display = "block";
+}
+
 /* Navigation */
 function show(p){
-  $("pageLogin").style.display = (p==="login") ? "block" : "none";
   $("pagePesee").style.display = (p==="pesee") ? "block" : "none";
   $("pageHist").style.display  = (p==="hist")  ? "block" : "none";
   if(p==="hist") loadData();
@@ -250,44 +254,39 @@ function calc(){
 });
 
 /* Auth */
-async function refreshAuth(){
-  const { data } = await supabase.auth.getUser();
-  setAuthBadge(data?.user || null);
-}
 async function login(){
   try{
     const email = $("loginEmail").value.trim();
     const password = $("loginPassword").value;
-    if(!email || !password) return alert("Email + mot de passe.");
+    if(!email || !password) return setLoginMsg("Email + mot de passe.");
 
-    setStatus("Connexion…");
+    setLoginMsg("Connexion…");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if(error) throw error;
 
-    await refreshAuth();
-    setStatus("✅ Connecté");
+    const { data } = await supabase.auth.getUser();
+    setAuthBadge(data?.user);
+
+    setLoginMsg("✅ Connecté");
     $("loginPassword").value = "";
+
+    showApp();
     show("pesee");
     setTimeout(goFull, 200); // option : plein écran après connexion
   }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
+    setLoginMsg("❌ " + (e?.message || String(e)));
   }
 }
+
 async function logout(){
   try{
     setStatus("Déconnexion…");
     await supabase.auth.signOut();
-    await refreshAuth();
     setStatus("✅ Déconnecté");
-    show("hist");
+    showLogin();
   }catch(e){
     setStatus("❌ " + (e?.message || String(e)));
   }
-}
-function ensureLogged(){
-  // Vérifie la session sans requête réseau
-  const s = supabase.auth.getSession ? null : null;
-  // On va juste tenter getUser au moment d'enregistrer si besoin
 }
 
 /* Enregistrer */
@@ -297,17 +296,8 @@ async function save(){
     const n = Number($("nb").value);
     const b = num($("brut").value);
     const t = (T[$("type").value] || 0) * n;
-
     if(b<=0) return alert("Entre un poids brut.");
     if(b<t)  return alert("Brut inférieur à la tare.");
-
-    // Vérifier login
-    const { data: udata } = await supabase.auth.getUser();
-    if(!udata?.user){
-      alert("Tu dois être connecté pour enregistrer.");
-      show("login");
-      return;
-    }
 
     setStatus("Insertion…");
     const payload = {
@@ -459,15 +449,19 @@ async function loadData(){
   }
 }
 
-/* Init */
+/* Init: afficher login d'abord */
 setBadge();
 calc();
-refreshAuth();
-show("hist");
+showLogin();
 
-// Mise à jour badge si la session change
-supabase.auth.onAuthStateChange((_event, session)=>{
-  setAuthBadge(session?.user || null);
+// Si déjà connecté (session existante), on saute le login
+supabase.auth.getUser().then(({data})=>{
+  if(data?.user){
+    setAuthBadge(data.user);
+    showApp();
+    show("hist");
+    loadData();
+  }
 });
 </script>
 </body>
