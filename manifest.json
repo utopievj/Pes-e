@@ -1,14 +1,22 @@
 {
   "name": "Pesée",
   "short_name": "Pesée",
-  "start_url": "/pesee.html",
-  "scope": "/",
+  "start_url": "/Pes-e/pesee",
+  "scope": "/Pes-e/",
   "display": "standalone",
   "background_color": "#0b0c10",
   "theme_color": "#b22222",
   "orientation": "portrait",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/Pes-e/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/Pes-e/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
-}
+} 
