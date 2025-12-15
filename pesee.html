@@ -3,11 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-
 <title>Pesée</title>
 
 <!-- PWA -->
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="/Pes-e/manifest.json">
 <meta name="theme-color" content="#b22222">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -17,33 +16,47 @@ body{margin:0;font-family:system-ui;background:#0b0c10;color:#e9eef6}
 .wrap{max-width:980px;margin:auto;padding:16px}
 .card{background:#12141b;border:1px solid #222634;border-radius:16px;padding:16px}
 label{display:block;margin:8px 0 4px;font-size:12px;color:#a8b3d6}
-input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #262b3a;background:#0f1118;color:#fff}
-button{padding:14px;border-radius:12px;border:1px solid #7a1f1f;background:#b22222;color:#fff;font-weight:800}
+input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #262b3a;background:#0f1118;color:#fff;box-sizing:border-box}
+button{padding:14px;border-radius:12px;border:1px solid #7a1f1f;background:#b22222;color:#fff;font-weight:800;cursor:pointer}
 button:hover{background:#d32f2f}
 .smallBtn{padding:10px 12px;font-size:12px}
 .grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr)}
-.col-4{grid-column:span 4}.col-2{grid-column:span 2}.col-12{grid-column:span 12}
-@media(max-width:820px){.col-4,.col-2{grid-column:span 12}}
-.big{font-size:34px;font-weight:900}
-.badge{display:inline-block;padding:4px 10px;border:1px solid #222634;border-radius:999px;font-size:12px}
-.center{min-height:100vh;display:flex;align-items:center;justify-content:center}
+.col-4{grid-column:span 4}.col-3{grid-column:span 3}.col-2{grid-column:span 2}.col-6{grid-column:span 6}.col-12{grid-column:span 12}
+@media(max-width:820px){.col-4,.col-3,.col-2,.col-6{grid-column:span 12}}
+.big{font-size:34px;font-weight:900;margin:8px 0}
+.badge{display:inline-block;padding:4px 10px;border:1px solid #222634;border-radius:999px;font-size:12px;color:#a8b3d6}
+.tableWrap{overflow:auto;border:1px solid #222634;border-radius:12px;margin-top:10px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid #222634}
+th{font-size:12px;color:#a8b3d6;white-space:nowrap;text-align:left}
+.right{text-align:right}
+.center{min-height:90vh;display:flex;align-items:center;justify-content:center}
 .max420{max-width:420px;width:100%}
-#status{margin-top:10px;font-size:12px;color:#ffd27a}
+#status{margin:10px 0;font-size:12px;white-space:pre-wrap;color:#ffd27a}
+.muted{color:#a8b3d6;font-size:12px}
+hr{border:0;border-top:1px solid #222634;margin:14px 0}
 </style>
 </head>
 
 <body>
 
 <!-- LOGIN -->
-<div id="login" class="center">
+<div id="loginScreen" class="center">
   <div class="card max420">
-    <h2>Connexion</h2>
+    <h2 style="margin-top:0">Connexion</h2>
+    <p class="muted">Email + mot de passe (Supabase)</p>
+
     <label>Email</label>
-    <input id="email" type="email">
+    <input id="email" type="email" autocomplete="username">
+
     <label>Mot de passe</label>
-    <input id="password" type="password">
-    <button onclick="login()">SE CONNECTER</button>
-    <div id="loginMsg"></div>
+    <input id="password" type="password" autocomplete="current-password">
+
+    <div style="margin-top:12px;display:grid;gap:10px">
+      <button onclick="login()">SE CONNECTER</button>
+    </div>
+
+    <div id="loginMsg" style="margin-top:10px;font-size:12px;white-space:pre-wrap;color:#ffd27a"></div>
   </div>
 </div>
 
@@ -52,17 +65,18 @@ button:hover{background:#d32f2f}
   <div class="wrap">
     <div class="card">
 
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
         <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
-        <button class="smallBtn" onclick="syncPending()">SYNC (<span id="pendingCount">0</span>)</button>
-        <button class="smallBtn" onclick="logout()">DÉCONNEXION</button>
-        <span class="badge" id="netState">Réseau ?</span>
+        <button class="smallBtn" onclick="loadData()">🔄 Rafraîchir</button>
+        <button class="smallBtn" onclick="logout()">🚪 Déconnexion</button>
+        <span class="badge" id="badgeUser">Connecté</span>
+        <span class="badge" id="badgeNet">Réseau : ?</span>
       </div>
 
-      <div id="status"></div>
+      <div id="status">Prêt.</div>
 
-      <!-- PESEE -->
+      <!-- PAGE PESÉE -->
       <div id="pagePesee">
         <h2>Pesée</h2>
 
@@ -90,11 +104,12 @@ button:hover{background:#d32f2f}
 
           <div class="col-2">
             <label>Brut (kg)</label>
-            <input id="brut" type="number" step="0.1">
+            <input id="brut" type="number" step="0.1" placeholder="Ex: 120.5">
           </div>
 
           <div class="col-12">
             <div class="big">Net : <span id="net">0</span> kg</div>
+            <div class="muted">Tare calculée automatiquement (PAM 59, ASL 45, ABJ 43, F 0, HF 0)</div>
           </div>
 
           <div class="col-12">
@@ -103,23 +118,58 @@ button:hover{background:#d32f2f}
         </div>
       </div>
 
-      <!-- HIST -->
+      <!-- PAGE HIST -->
       <div id="pageHist" style="display:none">
         <h2>Historique</h2>
-        <table width="100%" border="1" cellspacing="0">
-          <thead>
-            <tr><th>Date</th><th>Ville</th><th>Type</th><th>Nb</th><th>Net</th></tr>
-          </thead>
-          <tbody id="hist"></tbody>
-        </table>
 
-        <h3>En attente (hors-ligne)</h3>
-        <table width="100%" border="1" cellspacing="0">
-          <thead>
-            <tr><th>Date</th><th>Ville</th><th>Type</th><th>Net</th></tr>
-          </thead>
-          <tbody id="pending"></tbody>
-        </table>
+        <!-- Récap -->
+        <h3>Récap du jour</h3>
+        <div class="grid">
+          <div class="col-4">
+            <label>Date</label>
+            <input id="recapDate" type="date">
+          </div>
+          <div class="col-2" style="display:flex;align-items:end;gap:8px;flex-wrap:wrap">
+            <button class="smallBtn" onclick="recapToday()">Aujourd’hui</button>
+            <button class="smallBtn" onclick="buildRecap()">Afficher</button>
+          </div>
+          <div class="col-6" style="display:flex;align-items:end">
+            <div class="muted">Récap = totaux Net (kg) par type et par ville, sur la date.</div>
+          </div>
+        </div>
+
+        <h4>Total (toutes villes)</h4>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr><th class="right">PAM</th><th class="right">ASL</th><th class="right">ABJ</th><th class="right">F</th><th class="right">HF</th><th class="right">TOTAL</th></tr>
+            </thead>
+            <tbody id="recapAll"></tbody>
+          </table>
+        </div>
+
+        <h4 style="margin-top:14px">Par ville</h4>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr><th>Ville</th><th class="right">PAM</th><th class="right">ASL</th><th class="right">ABJ</th><th class="right">F</th><th class="right">HF</th><th class="right">TOTAL</th></tr>
+            </thead>
+            <tbody id="recapByCity"></tbody>
+          </table>
+        </div>
+
+        <hr>
+
+        <!-- Liste des pesées -->
+        <h3>Liste des pesées</h3>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Ville</th><th>Type</th><th class="right">Nb</th><th class="right">Net</th></tr>
+            </thead>
+            <tbody id="hist"></tbody>
+          </table>
+        </div>
       </div>
 
     </div>
@@ -127,132 +177,312 @@ button:hover{background:#d32f2f}
 </div>
 
 <script>
-/* SUPABASE */
+/* ✅ SUPABASE */
 const supabase = window.supabase.createClient(
   "https://dzfokswsmkvhjhziqakj.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0"
 );
 
-/* TARAGES */
+/* TARES + TYPES */
 const T = { PAM:59, ASL:45, ABJ:43, FRIGO:0, HF:0 };
 const A = { PAM:"PAM", ASL:"ASL", ABJ:"ABJ", FRIGO:"F", HF:"HF" };
-const PKEY = "pesee_pending";
+const TYPES = ["PAM","ASL","ABJ","F","HF"];
 
-/* HELPERS */
-const $ = id=>document.getElementById(id);
-const num = v=>Number(v)||0;
+const $ = (id)=>document.getElementById(id);
+const r1 = (x)=>Math.round(x*10)/10;
+const num = (x)=>{ const v=Number(String(x).replace(",", ".")); return Number.isFinite(v)?v:0; };
 
-/* OFFLINE */
-function getPending(){ return JSON.parse(localStorage.getItem(PKEY)||"[]"); }
-function setPending(a){ localStorage.setItem(PKEY,JSON.stringify(a)); $("pendingCount").textContent=a.length; }
+let currentUser = null;
 
-/* LOGIN */
-async function login(){
-  const { error } = await supabase.auth.signInWithPassword({
-    email:$("email").value,
-    password:$("password").value
-  });
-  if(error) return $("loginMsg").textContent=error.message;
-  $("login").style.display="none";
-  $("app").style.display="block";
-  loadCities();
-  loadData();
+/* UI */
+function setStatus(msg){ $("status").textContent = msg || ""; }
+function setLoginMsg(msg){ $("loginMsg").textContent = msg || ""; }
+function refreshNetwork(){
+  $("badgeNet").textContent = "Réseau : " + (navigator.onLine ? "OK" : "HORS-LIGNE");
 }
+window.addEventListener("online", refreshNetwork);
+window.addEventListener("offline", refreshNetwork);
 
-/* LOGOUT */
-async function logout(){
-  await supabase.auth.signOut();
-  location.reload();
-}
-
-/* NAV */
+/* Pages */
 function show(p){
-  $("pagePesee").style.display=p==="pesee"?"block":"none";
-  $("pageHist").style.display=p==="hist"?"block":"none";
+  $("pagePesee").style.display = (p==="pesee") ? "block" : "none";
+  $("pageHist").style.display  = (p==="hist")  ? "block" : "none";
+  if(p==="hist"){
+    // par défaut : aujourd’hui si vide
+    if(!$("recapDate").value) $("recapDate").value = ymdToday();
+    buildRecap();
+  }
 }
 
-/* CALC */
+/* Calcul net */
 function calc(){
-  const b=num($("brut").value);
-  const n=num($("nb").value);
-  const t=T[$("type").value]*n;
-  $("net").textContent=Math.max(0,b-t).toFixed(1);
+  const nb = Number($("nb").value);
+  const brut = num($("brut").value);
+  const tare = (T[$("type").value] || 0) * nb;
+  const net = Math.max(0, brut - tare);
+  $("net").textContent = r1(net);
 }
-["brut","nb","type"].forEach(id=>$(id).addEventListener("input",calc));
-
-/* SAVE SAFE */
-async function saveSafe(){
-  calc();
-  const p={
-    ville:$("ville").value,
-    type:A[$("type").value],
-    nb:num($("nb").value),
-    brut:num($("brut").value),
-    tare:T[$("type").value]*num($("nb").value),
-    net:num($("net").textContent)
-  };
-
-  if(!confirm("Confirmer la pesée "+p.net+" kg ?")) return;
-
-  try{
-    const { error } = await supabase.from("pesees").insert(p);
-    if(error) throw error;
-    $("status").textContent="OK enregistré";
-    loadData();
-    show("hist");
-  }catch{
-    const arr=getPending();
-    arr.push({...p,local:Date.now()});
-    setPending(arr);
-    $("status").textContent="Hors-ligne : enregistré en attente";
-  }
-}
-
-/* SYNC */
-async function syncPending(){
-  const arr=getPending();
-  if(!arr.length) return;
-  for(const p of arr){
-    await supabase.from("pesees").insert(p);
-  }
-  setPending([]);
-  loadData();
-}
-
-/* LOAD */
-async function loadData(){
-  const { data } = await supabase.from("pesees").select("*").order("created_at",{ascending:false}).limit(50);
-  $("hist").innerHTML=data.map(r=>`<tr><td>${new Date(r.created_at).toLocaleString()}</td><td>${r.ville}</td><td>${r.type}</td><td>${r.nb}</td><td>${r.net}</td></tr>`).join("");
-  $("pending").innerHTML=getPending().map(r=>`<tr><td>${new Date(r.local).toLocaleString()}</td><td>${r.ville}</td><td>${r.type}</td><td>${r.net}</td></tr>`).join("");
-}
-
-/* CITIES */
-async function loadCities(){
-  const { data } = await supabase.from("villes").select("nom").order("nom");
-  $("ville").innerHTML=data.map(v=>`<option>${v.nom}</option>`).join("");
-}
-
-/* NET STATE */
-function netState(){
-  $("netState").textContent=navigator.onLine?"Réseau OK":"Hors-ligne";
-}
-window.addEventListener("online",netState);
-window.addEventListener("offline",netState);
-netState();
-
-/* AUTO LOGIN */
-supabase.auth.getUser().then(({data})=>{
-  if(data?.user){
-    $("login").style.display="none";
-    $("app").style.display="block";
-    loadCities();
-    loadData();
-  }
+["input","change"].forEach(ev=>{
+  $("type").addEventListener(ev, calc);
+  $("nb").addEventListener(ev, calc);
+  $("brut").addEventListener(ev, calc);
 });
 
-/* SERVICE WORKER */
+/* Login / logout */
+async function login(){
+  try{
+    const email = $("email").value.trim();
+    const password = $("password").value;
+    if(!email || !password) return setLoginMsg("Email + mot de passe.");
+
+    setLoginMsg("Connexion…");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if(error) throw error;
+
+    const { data } = await supabase.auth.getUser();
+    currentUser = data?.user || null;
+
+    $("badgeUser").textContent = currentUser?.email ? ("Connecté : " + currentUser.email) : "Connecté";
+    $("loginScreen").style.display = "none";
+    $("app").style.display = "block";
+
+    await loadCities();
+    await loadData();
+
+    if(!$("recapDate").value) $("recapDate").value = ymdToday();
+    show("pesee");
+    setLoginMsg("");
+    setStatus("✅ Connecté");
+  }catch(e){
+    setLoginMsg("❌ " + (e?.message || String(e)));
+  }
+}
+
+async function logout(){
+  try{
+    setStatus("Déconnexion…");
+    await supabase.auth.signOut();
+    location.reload();
+  }catch(e){
+    setStatus("❌ " + (e?.message || String(e)));
+  }
+}
+
+/* Villes depuis table "villes" */
+async function loadCities(){
+  try{
+    const { data, error } = await supabase.from("villes").select("nom").order("nom", { ascending:true }).limit(300);
+    if(error) throw error;
+    const sel = $("ville");
+    sel.innerHTML = "";
+    (data||[]).forEach(v=>{
+      const opt = document.createElement("option");
+      opt.value = v.nom;
+      opt.textContent = v.nom;
+      sel.appendChild(opt);
+    });
+    if(!sel.options.length){
+      sel.innerHTML = "<option>—</option>";
+    }
+  }catch(e){
+    setStatus("❌ VILLES: " + (e?.message || String(e)));
+    // fallback minimal si jamais
+    const sel = $("ville");
+    if(!sel.options.length){
+      sel.innerHTML = `
+        <option>Boulanger Tarbes</option>
+        <option>Pau</option>
+        <option>Envie</option>
+        <option>Assat</option>
+        <option>Coaraze</option>
+        <option>Espoey</option>`;
+    }
+  }
+}
+
+/* Enregistrer (avec confirmation) */
+async function saveSafe(){
+  try{
+    calc();
+    const nb = Number($("nb").value);
+    const brut = num($("brut").value);
+    const tare = (T[$("type").value] || 0) * nb;
+    const net = Math.max(0, brut - tare);
+    const ville = ($("ville").value || "").trim();
+    const type = A[$("type").value];
+
+    if(!ville || ville==="—") return alert("Choisis une ville.");
+    if(brut<=0) return alert("Entre un poids brut.");
+    if(brut<tare) return alert("Brut inférieur à la tare.");
+
+    const ok = confirm(
+      "Confirmer ?\n\n" +
+      "Ville: " + ville + "\n" +
+      "Type: " + type + " | Nb: " + nb + "\n" +
+      "Brut: " + r1(brut) + " kg\n" +
+      "Tare: " + r1(tare) + " kg\n" +
+      "NET:  " + r1(net) + " kg"
+    );
+    if(!ok) return;
+
+    setStatus("Insertion…");
+    const { error } = await supabase.from("pesees").insert({
+      ville, type, nb,
+      brut: r1(brut),
+      tare: r1(tare),
+      net: r1(net)
+    });
+    if(error) throw error;
+
+    $("brut").value = "";
+    calc();
+
+    setStatus("✅ Enregistré");
+    await loadData();
+    // va direct à l’historique + récap du jour
+    if(!$("recapDate").value) $("recapDate").value = ymdToday();
+    show("hist");
+  }catch(e){
+    setStatus("❌ " + (e?.message || String(e)));
+  }
+}
+
+/* Historique (liste) */
+async function loadData(){
+  try{
+    const { data, error } = await supabase
+      .from("pesees")
+      .select("created_at, ville, type, nb, net")
+      .order("created_at", { ascending:false })
+      .limit(200);
+    if(error) throw error;
+
+    const tb = $("hist");
+    tb.innerHTML = "";
+    (data||[]).forEach(r=>{
+      tb.innerHTML += `
+        <tr>
+          <td>${new Date(r.created_at).toLocaleString()}</td>
+          <td>${r.ville}</td>
+          <td>${r.type}</td>
+          <td class="right">${r.nb}</td>
+          <td class="right">${r.net}</td>
+        </tr>`;
+    });
+  }catch(e){
+    setStatus("❌ " + (e?.message || String(e)));
+  }
+}
+
+/* --- RÉCAP JOUR / VILLE / TYPE --- */
+function ymdToday(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const da=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${da}`;
+}
+function recapToday(){
+  $("recapDate").value = ymdToday();
+  buildRecap();
+}
+function dayRangeISO(ymd){
+  const [y,m,d]=ymd.split("-").map(Number);
+  const start=new Date(y,m-1,d,0,0,0,0);
+  const end=new Date(y,m-1,d+1,0,0,0,0);
+  return { startISO:start.toISOString(), endISO:end.toISOString() };
+}
+
+async function buildRecap(){
+  try{
+    const date = $("recapDate").value || ymdToday();
+    $("recapDate").value = date;
+
+    const { startISO, endISO } = dayRangeISO(date);
+
+    const { data, error } = await supabase
+      .from("pesees")
+      .select("ville,type,net,created_at")
+      .gte("created_at", startISO)
+      .lt("created_at", endISO)
+      .limit(3000);
+
+    if(error) throw error;
+
+    const totalAll = {PAM:0,ASL:0,ABJ:0,F:0,HF:0};
+    const byCity = {}; // { ville: {PAM..} }
+
+    (data||[]).forEach(r=>{
+      const t = String(r.type||"").toUpperCase();
+      if(!TYPES.includes(t)) return;
+      const net = num(r.net);
+      totalAll[t]+=net;
+
+      const v = r.ville || "—";
+      if(!byCity[v]) byCity[v]={PAM:0,ASL:0,ABJ:0,F:0,HF:0};
+      byCity[v][t]+=net;
+    });
+
+    // total global
+    const sumAll = TYPES.reduce((s,k)=>s+totalAll[k],0);
+    $("recapAll").innerHTML = `
+      <tr>
+        <td class="right">${r1(totalAll.PAM)}</td>
+        <td class="right">${r1(totalAll.ASL)}</td>
+        <td class="right">${r1(totalAll.ABJ)}</td>
+        <td class="right">${r1(totalAll.F)}</td>
+        <td class="right">${r1(totalAll.HF)}</td>
+        <td class="right"><b>${r1(sumAll)}</b></td>
+      </tr>`;
+
+    // par ville
+    const villes = Object.keys(byCity).sort((a,b)=>a.localeCompare(b,"fr"));
+    if(!villes.length){
+      $("recapByCity").innerHTML = `<tr><td colspan="7" class="muted">Aucune donnée</td></tr>`;
+      return;
+    }
+
+    $("recapByCity").innerHTML = villes.map(v=>{
+      const o = byCity[v];
+      const sum = TYPES.reduce((s,k)=>s+o[k],0);
+      return `
+        <tr>
+          <td>${v}</td>
+          <td class="right">${r1(o.PAM)}</td>
+          <td class="right">${r1(o.ASL)}</td>
+          <td class="right">${r1(o.ABJ)}</td>
+          <td class="right">${r1(o.F)}</td>
+          <td class="right">${r1(o.HF)}</td>
+          <td class="right"><b>${r1(sum)}</b></td>
+        </tr>`;
+    }).join("");
+
+  }catch(e){
+    $("recapAll").innerHTML = `<tr><td colspan="6">Erreur: ${(e?.message||String(e))}</td></tr>`;
+    $("recapByCity").innerHTML = "";
+  }
+}
+
+/* Auto session */
+(async ()=>{
+  refreshNetwork();
+  const { data } = await supabase.auth.getUser();
+  if(data?.user){
+    currentUser = data.user;
+    $("badgeUser").textContent = currentUser?.email ? ("Connecté : " + currentUser.email) : "Connecté";
+    $("loginScreen").style.display = "none";
+    $("app").style.display = "block";
+    await loadCities();
+    await loadData();
+    $("recapDate").value = ymdToday();
+    buildRecap();
+    show("pesee");
+  }
+})();
+
+/* Service worker */
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js");
+  navigator.serviceWorker.register("/Pes-e/sw.js");
 }
 </script>
 </body>
