@@ -36,6 +36,10 @@ th{font-size:12px;color:#a8b3d6;white-space:nowrap;text-align:left}
 #status{margin:10px 0;font-size:12px;white-space:pre-wrap;color:#ffd27a}
 .muted{color:#a8b3d6;font-size:12px}
 hr{border:0;border-top:1px solid #222634;margin:14px 0}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid #222634;color:#a8b3d6}
+.tagOk{border-color:#1f6f3a;color:#a7f3c6}
+.tagWait{border-color:#7a1f1f;color:#ffd27a}
+.tagCache{border-color:#3a4a7a;color:#b7c6ff}
 </style>
 </head>
 
@@ -75,6 +79,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
         <span class="badge" id="badgeUser">Connecté</span>
         <span class="badge" id="badgeNet">Réseau : ?</span>
         <span class="badge" id="badgeAdmin">Utilisateur</span>
+        <span class="badge" id="badgeStore">Données : ?</span>
       </div>
 
       <div id="status">Prêt.</div>
@@ -170,7 +175,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
             <button class="smallBtn" onclick="buildRecap()">Afficher</button>
           </div>
           <div class="col-6" style="display:flex;align-items:end">
-            <div class="muted">Totaux Net (kg) par type et par ville (depuis Supabase).</div>
+            <div class="muted">Hors-ligne : utilise cache + en attente.</div>
           </div>
         </div>
 
@@ -196,7 +201,6 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
 
         <hr>
 
-        <!-- En attente -->
         <h3>En attente (hors-ligne)</h3>
         <div class="tableWrap">
           <table>
@@ -210,17 +214,22 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
 
         <hr>
 
-        <!-- Liste -->
-        <h3>Liste des pesées (Supabase)</h3>
+        <h3>Historique (mélangé : Supabase + Cache + En attente)</h3>
+        <div class="muted" style="margin-bottom:6px">
+          <span class="tag tagOk">LIVE</span> = Supabase en direct &nbsp;
+          <span class="tag tagCache">CACHE</span> = dernière copie locale &nbsp;
+          <span class="tag tagWait">ATTENTE</span> = pas encore envoyé
+        </div>
+
         <div class="tableWrap">
           <table>
             <thead>
               <tr>
-                <th>Date</th><th>Ville</th><th>Type</th><th class="right">Nb</th><th class="right">Net</th>
+                <th>Date</th><th>Ville</th><th>Type</th><th class="right">Nb</th><th class="right">Net</th><th>Source</th>
                 <th id="thAdmin" style="display:none">Admin</th>
               </tr>
             </thead>
-            <tbody id="hist"></tbody>
+            <tbody id="histMix"></tbody>
           </table>
         </div>
       </div>
@@ -241,8 +250,10 @@ const T = { PAM:59, ASL:45, ABJ:43, FRIGO:0, HF:0 };
 const A = { PAM:"PAM", ASL:"ASL", ABJ:"ABJ", FRIGO:"F", HF:"HF" };
 const TYPES = ["PAM","ASL","ABJ","F","HF"];
 
-/* OFFLINE QUEUE */
-const PENDING_KEY = "pesees_pending_v2";
+/* OFFLINE KEYS */
+const PENDING_KEY = "pesees_pending_v4";
+const HISTORY_CACHE_KEY = "pesees_history_cache_v1";
+const CACHE_META_KEY = "pesees_history_cache_meta_v1";
 
 const $ = (id)=>document.getElementById(id);
 const r1 = (x)=>Math.round(x*10)/10;
@@ -250,12 +261,18 @@ const num = (x)=>{ const v=Number(String(x).replace(",", ".")); return Number.is
 
 let currentUser = null;
 let isAdminUser = false;
+let lastHistorySource = "LIVE";
 
 /* UI */
 function setStatus(msg){ $("status").textContent = msg || ""; }
 function setLoginMsg(msg){ $("loginMsg").textContent = msg || ""; }
 function refreshNetwork(){
   $("badgeNet").textContent = "Réseau : " + (navigator.onLine ? "OK" : "HORS-LIGNE");
+}
+function setStoreBadge(){
+  const meta = getHistoryMeta();
+  const info = meta?.updatedAt ? new Date(meta.updatedAt).toLocaleString() : "—";
+  $("badgeStore").textContent = `Données : ${lastHistorySource} (${info})`;
 }
 window.addEventListener("online", ()=>{ refreshNetwork(); syncPending(); });
 window.addEventListener("offline", refreshNetwork);
@@ -284,6 +301,7 @@ function show(p){
     loadCities();
     loadData();
     renderPending();
+    renderMixedHistory();
   }
 }
 
@@ -301,7 +319,7 @@ function calc(){
   $("brut").addEventListener(ev, calc);
 });
 
-/* ---- OFFLINE QUEUE HELPERS ---- */
+/* ---- OFFLINE PENDING ---- */
 function getPending(){
   try{ return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); }
   catch{ return []; }
@@ -340,17 +358,85 @@ function renderPending(){
         <td class="right">
           <button class="smallBtn danger" onclick="deletePending('${x.client_id}')">Suppr</button>
         </td>
-      </tr>
-    `;
+      </tr>`;
   });
 }
 function deletePending(client_id){
   if(!confirm("Supprimer cette ligne en attente ?")) return;
   removePending(client_id);
   renderPending();
+  renderMixedHistory();
+  buildRecap();
 }
 
-/* SYNC pending -> Supabase */
+/* ---- HISTORY CACHE ---- */
+function getHistoryCache(){
+  try{ return JSON.parse(localStorage.getItem(HISTORY_CACHE_KEY) || "[]"); }
+  catch{ return []; }
+}
+function setHistoryCache(rows, source){
+  localStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(rows || []));
+  localStorage.setItem(CACHE_META_KEY, JSON.stringify({ updatedAt: Date.now(), source: source || "LIVE" }));
+}
+function getHistoryMeta(){
+  try{ return JSON.parse(localStorage.getItem(CACHE_META_KEY) || "null"); }
+  catch{ return null; }
+}
+
+/* ---- MIXED RENDER ---- */
+function renderMixedHistory(){
+  const pending = getPending().map(p=>({
+    id: null,
+    created_at: new Date(p.local_created_at).toISOString(),
+    ville: p.ville,
+    type: p.type,
+    nb: p.nb,
+    net: p.net,
+    _source: "ATTENTE",
+    _client_id: p.client_id
+  }));
+
+  const cached = getHistoryCache().map(r=>({
+    ...r,
+    _source: (lastHistorySource === "LIVE" ? "LIVE" : "CACHE")
+  }));
+
+  const all = [...pending, ...cached]
+    .sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
+
+  const tb = $("histMix");
+  tb.innerHTML = "";
+
+  if(!all.length){
+    tb.innerHTML = `<tr><td colspan="${isAdminUser?7:6}" class="muted">Aucune donnée</td></tr>`;
+    return;
+  }
+
+  all.forEach(r=>{
+    const srcTag =
+      r._source==="ATTENTE" ? `<span class="tag tagWait">ATTENTE</span>` :
+      (lastHistorySource==="LIVE" ? `<span class="tag tagOk">LIVE</span>` : `<span class="tag tagCache">CACHE</span>`);
+
+    const adminCell = isAdminUser
+      ? (r._source==="ATTENTE"
+          ? `<td class="muted">—</td>`
+          : `<td><button class="smallBtn danger" onclick="deleteRow(${r.id})">Suppr</button></td>`)
+      : "";
+
+    tb.innerHTML += `
+      <tr>
+        <td>${new Date(r.created_at).toLocaleString()}</td>
+        <td>${r.ville}</td>
+        <td>${r.type}</td>
+        <td class="right">${r.nb}</td>
+        <td class="right">${r.net}</td>
+        <td>${srcTag}</td>
+        ${adminCell}
+      </tr>`;
+  });
+}
+
+/* ✅ SYNC pending -> Supabase (anti-doublon via upsert client_id) */
 async function syncPending(){
   const arr = getPending();
   $("pendingCount").textContent = String(arr.length);
@@ -370,12 +456,11 @@ async function syncPending(){
   setStatus("SYNC… ("+arr.length+" en attente)");
   let ok = 0;
 
-  // on envoie du plus ancien au plus récent
   const toSend = [...arr].reverse();
-
   for(const row of toSend){
     try{
       const payload = {
+        client_id: row.client_id,
         ville: row.ville,
         type: row.type,
         nb: row.nb,
@@ -383,7 +468,11 @@ async function syncPending(){
         tare: row.tare,
         net: row.net
       };
-      const { error } = await supabase.from("pesees").insert(payload);
+
+      const { error } = await supabase
+        .from("pesees")
+        .upsert(payload, { onConflict: "client_id" });
+
       if(error) throw error;
 
       ok++;
@@ -391,6 +480,7 @@ async function syncPending(){
     }catch(e){
       setStatus("❌ SYNC arrêté : " + (e?.message || String(e)));
       renderPending();
+      renderMixedHistory();
       return;
     }
   }
@@ -399,6 +489,7 @@ async function syncPending(){
   setStatus("✅ SYNC terminé : "+ok+" envoyées");
   await loadData();
   await buildRecap();
+  renderMixedHistory();
 }
 
 /* Login / logout */
@@ -429,9 +520,7 @@ async function login(){
     setLoginMsg("");
     setStatus("✅ Connecté");
 
-    // tentative sync auto à la connexion
     syncPending();
-
     show("pesee");
   }catch(e){
     setLoginMsg("❌ " + (e?.message || String(e)));
@@ -454,7 +543,6 @@ async function loadCities(){
     const { data, error } = await supabase.from("villes").select("id, nom").order("nom", { ascending:true }).limit(500);
     if(error) throw error;
 
-    // select
     const sel = $("ville");
     sel.innerHTML = "";
     (data||[]).forEach(v=>{
@@ -465,7 +553,6 @@ async function loadCities(){
     });
     if(!sel.options.length) sel.innerHTML = "<option>—</option>";
 
-    // admin list
     const tb = $("citiesAdmin");
     tb.innerHTML = "";
     if(!isAdminUser){
@@ -517,7 +604,7 @@ async function deleteCity(id, nom){
   }
 }
 
-/* ✅ Enregistrer : tente Supabase, sinon met en attente (et reste sur PESÉE) */
+/* ✅ Enregistrer : upsert avec client_id (anti-doublon). Sinon pending. */
 async function saveSafe(){
   try{
     calc();
@@ -542,7 +629,10 @@ async function saveSafe(){
     );
     if(!ok) return;
 
+    const client_id = "p_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+
     const payload = {
+      client_id,
       ville, type, nb,
       brut: r1(brut),
       tare: r1(tare),
@@ -550,21 +640,22 @@ async function saveSafe(){
     };
 
     setStatus("Insertion…");
+    const { error } = await supabase
+      .from("pesees")
+      .upsert(payload, { onConflict: "client_id" });
 
-    // ✅ tentative envoi
-    const { error } = await supabase.from("pesees").insert(payload);
     if(error) throw error;
 
-    // ok
     $("brut").value = "";
     calc();
 
     setStatus("✅ Enregistré");
     await loadData();
     await buildRecap();
-    show("pesee"); // ✅ reste sur Pesée
+    renderMixedHistory();
+    show("pesee");
   }catch(e){
-    // ❌ si Supabase KO -> on met en attente
+    // pending
     const nb = Number($("nb").value);
     const brut = num($("brut").value);
     const tare = (T[$("type").value] || 0) * nb;
@@ -588,45 +679,36 @@ async function saveSafe(){
 
     setStatus("⚠️ Hors-ligne / erreur : enregistré EN ATTENTE. Clique SYNC.");
     renderPending();
+    renderMixedHistory();
+    buildRecap();
     show("pesee");
   }
 }
 
-/* Historique (Supabase) */
+/* Historique Supabase -> cache */
 async function loadData(){
   try{
     const { data, error } = await supabase
       .from("pesees")
-      .select("id, created_at, ville, type, nb, net")
+      .select("id, created_at, ville, type, nb, net, client_id")
       .order("created_at", { ascending:false })
-      .limit(500);
+      .limit(1200);
+
     if(error) throw error;
 
-    const tb = $("hist");
-    tb.innerHTML = "";
-    const colspan = isAdminUser ? 6 : 5;
-
-    if(!data || !data.length){
-      tb.innerHTML = `<tr><td colspan="${colspan}" class="muted">Aucune donnée</td></tr>`;
-      return;
-    }
-
-    data.forEach(r=>{
-      tb.innerHTML += `
-        <tr>
-          <td>${new Date(r.created_at).toLocaleString()}</td>
-          <td>${r.ville}</td>
-          <td>${r.type}</td>
-          <td class="right">${r.nb}</td>
-          <td class="right">${r.net}</td>
-          ${isAdminUser ? `<td><button class="smallBtn danger" onclick="deleteRow(${r.id})">Suppr</button></td>` : ``}
-        </tr>`;
-    });
+    lastHistorySource = "LIVE";
+    setHistoryCache(data || [], "LIVE");
+    setStoreBadge();
+    renderMixedHistory();
   }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
+    lastHistorySource = "CACHE";
+    setStoreBadge();
+    setStatus("⚠️ Supabase indisponible : affichage depuis le CACHE local.");
+    renderMixedHistory();
   }
 }
 
+/* Admin delete / clear */
 async function deleteRow(id){
   if(!isAdminUser) return alert("Admin uniquement");
   if(!confirm("Supprimer cette ligne ?")) return;
@@ -637,11 +719,11 @@ async function deleteRow(id){
     setStatus("✅ Supprimé");
     await loadData();
     await buildRecap();
+    renderMixedHistory();
   }catch(e){
     setStatus("❌ " + (e?.message || String(e)));
   }
 }
-
 async function clearAll(){
   if(!isAdminUser) return alert("Admin uniquement");
   if(!confirm("⚠️ Vider TOUT l’historique ?")) return;
@@ -652,12 +734,13 @@ async function clearAll(){
     setStatus("✅ Historique vidé");
     await loadData();
     await buildRecap();
+    renderMixedHistory();
   }catch(e){
     setStatus("❌ " + (e?.message || String(e)));
   }
 }
 
-/* --- RÉCAP JOUR / VILLE / TYPE (Supabase) --- */
+/* --- RÉCAP : live sinon cache+pending --- */
 function ymdToday(){
   const d=new Date();
   const y=d.getFullYear();
@@ -665,92 +748,116 @@ function ymdToday(){
   const da=String(d.getDate()).padStart(2,"0");
   return `${y}-${m}-${da}`;
 }
-function recapToday(){
-  $("recapDate").value = ymdToday();
-  buildRecap();
-}
-function dayRangeISO(ymd){
+function recapToday(){ $("recapDate").value = ymdToday(); buildRecap(); }
+function dayRangeLocal(ymd){
   const [y,m,d]=ymd.split("-").map(Number);
-  const start=new Date(y,m-1,d,0,0,0,0);
-  const end=new Date(y,m-1,d+1,0,0,0,0);
-  return { startISO:start.toISOString(), endISO:end.toISOString() };
+  const start=new Date(y,m-1,d,0,0,0,0).getTime();
+  const end=new Date(y,m-1,d+1,0,0,0,0).getTime();
+  return { start, end };
 }
-
+function inLocalDay(isoOrMs, start, end){
+  const t = typeof isoOrMs==="number" ? isoOrMs : new Date(isoOrMs).getTime();
+  return t>=start && t<end;
+}
+function recapFromRows(rows, pendingRows){
+  const totalAll = {PAM:0,ASL:0,ABJ:0,F:0,HF:0};
+  const byCity = {};
+  const add = (ville, type, net)=>{
+    const t = String(type||"").toUpperCase();
+    if(!TYPES.includes(t)) return;
+    const n = num(net);
+    totalAll[t]+=n;
+    const v = ville || "—";
+    if(!byCity[v]) byCity[v]={PAM:0,ASL:0,ABJ:0,F:0,HF:0};
+    byCity[v][t]+=n;
+  };
+  (rows||[]).forEach(r=> add(r.ville, r.type, r.net));
+  (pendingRows||[]).forEach(p=> add(p.ville, p.type, p.net));
+  return { totalAll, byCity };
+}
+function renderRecapTables(totalAll, byCity){
+  const sumAll = TYPES.reduce((s,k)=>s+totalAll[k],0);
+  $("recapAll").innerHTML = `
+    <tr>
+      <td class="right">${r1(totalAll.PAM)}</td>
+      <td class="right">${r1(totalAll.ASL)}</td>
+      <td class="right">${r1(totalAll.ABJ)}</td>
+      <td class="right">${r1(totalAll.F)}</td>
+      <td class="right">${r1(totalAll.HF)}</td>
+      <td class="right"><b>${r1(sumAll)}</b></td>
+    </tr>`;
+  const villes = Object.keys(byCity).sort((a,b)=>a.localeCompare(b,"fr"));
+  if(!villes.length){
+    $("recapByCity").innerHTML = `<tr><td colspan="7" class="muted">Aucune donnée</td></tr>`;
+    return;
+  }
+  $("recapByCity").innerHTML = villes.map(v=>{
+    const o = byCity[v];
+    const sum = TYPES.reduce((s,k)=>s+o[k],0);
+    return `
+      <tr>
+        <td>${v}</td>
+        <td class="right">${r1(o.PAM)}</td>
+        <td class="right">${r1(o.ASL)}</td>
+        <td class="right">${r1(o.ABJ)}</td>
+        <td class="right">${r1(o.F)}</td>
+        <td class="right">${r1(o.HF)}</td>
+        <td class="right"><b>${r1(sum)}</b></td>
+      </tr>`;
+  }).join("");
+}
 async function buildRecap(){
   try{
-    if(!$("recapDate")) return;
     const date = $("recapDate").value || ymdToday();
     $("recapDate").value = date;
 
-    const { startISO, endISO } = dayRangeISO(date);
+    // try live
+    const [y,m,d]=date.split("-").map(Number);
+    const s=new Date(y,m-1,d,0,0,0,0);
+    const e=new Date(y,m-1,d+1,0,0,0,0);
 
-    const { data, error } = await supabase
-      .from("pesees")
-      .select("ville,type,net,created_at")
-      .gte("created_at", startISO)
-      .lt("created_at", endISO)
-      .limit(4000);
-
-    if(error) throw error;
-
-    const totalAll = {PAM:0,ASL:0,ABJ:0,F:0,HF:0};
-    const byCity = {};
-
-    (data||[]).forEach(r=>{
-      const t = String(r.type||"").toUpperCase();
-      if(!TYPES.includes(t)) return;
-      const net = num(r.net);
-      totalAll[t]+=net;
-
-      const v = r.ville || "—";
-      if(!byCity[v]) byCity[v]={PAM:0,ASL:0,ABJ:0,F:0,HF:0};
-      byCity[v][t]+=net;
-    });
-
-    const sumAll = TYPES.reduce((s,k)=>s+totalAll[k],0);
-    $("recapAll").innerHTML = `
-      <tr>
-        <td class="right">${r1(totalAll.PAM)}</td>
-        <td class="right">${r1(totalAll.ASL)}</td>
-        <td class="right">${r1(totalAll.ABJ)}</td>
-        <td class="right">${r1(totalAll.F)}</td>
-        <td class="right">${r1(totalAll.HF)}</td>
-        <td class="right"><b>${r1(sumAll)}</b></td>
-      </tr>`;
-
-    const villes = Object.keys(byCity).sort((a,b)=>a.localeCompare(b,"fr"));
-    if(!villes.length){
-      $("recapByCity").innerHTML = `<tr><td colspan="7" class="muted">Aucune donnée</td></tr>`;
+    let rows = [];
+    try{
+      const { data, error } = await supabase
+        .from("pesees")
+        .select("ville,type,net,created_at")
+        .gte("created_at", s.toISOString())
+        .lt("created_at", e.toISOString())
+        .limit(5000);
+      if(error) throw error;
+      rows = data || [];
+      // + pending du jour
+      const { start, end } = dayRangeLocal(date);
+      const pendToday = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
+      const recap = recapFromRows(rows, pendToday);
+      renderRecapTables(recap.totalAll, recap.byCity);
+      return;
+    }catch{
+      // offline => cache + pending
+      const { start, end } = dayRangeLocal(date);
+      const cache = getHistoryCache().filter(r=> inLocalDay(r.created_at, start, end));
+      const pend = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
+      const recap = recapFromRows(cache, pend);
+      renderRecapTables(recap.totalAll, recap.byCity);
       return;
     }
-
-    $("recapByCity").innerHTML = villes.map(v=>{
-      const o = byCity[v];
-      const sum = TYPES.reduce((s,k)=>s+o[k],0);
-      return `
-        <tr>
-          <td>${v}</td>
-          <td class="right">${r1(o.PAM)}</td>
-          <td class="right">${r1(o.ASL)}</td>
-          <td class="right">${r1(o.ABJ)}</td>
-          <td class="right">${r1(o.F)}</td>
-          <td class="right">${r1(o.HF)}</td>
-          <td class="right"><b>${r1(sum)}</b></td>
-        </tr>`;
-    }).join("");
-
   }catch(e){
-    if($("recapAll")) $("recapAll").innerHTML = `<tr><td colspan="6">Erreur: ${(e?.message||String(e))}</td></tr>`;
-    if($("recapByCity")) $("recapByCity").innerHTML = "";
+    $("recapAll").innerHTML = `<tr><td colspan="6">Erreur: ${(e?.message||String(e))}</td></tr>`;
+    $("recapByCity").innerHTML = "";
   }
 }
 
-/* Auto session */
+/* Init */
 (async ()=>{
   refreshNetwork();
   setPending(getPending());
   renderPending();
   calc();
+
+  const meta = getHistoryMeta();
+  lastHistorySource = meta?.source || "CACHE";
+  setStoreBadge();
+  renderMixedHistory();
 
   const { data } = await supabase.auth.getUser();
   if(data?.user){
@@ -767,13 +874,10 @@ async function buildRecap(){
     await loadData();
     $("recapDate").value = ymdToday();
     buildRecap();
-
-    // sync auto au démarrage si possible
     syncPending();
 
     show("pesee");
   }else{
-    // pas connecté -> on montre le pendingCount quand même (utile)
     $("pendingCount").textContent = String(getPending().length);
   }
 })();
