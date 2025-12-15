@@ -29,6 +29,7 @@ th{font-size:12px;color:#a8b3d6;white-space:nowrap;text-align:left}
 #status{margin:10px 0;font-size:12px;white-space:pre-wrap;color:#ffd27a}
 .badge{display:inline-block;padding:4px 10px;border:1px solid #222634;border-radius:999px;font-size:12px;color:#a8b3d6}
 hr{border:0;border-top:1px solid #222634;margin:14px 0}
+.muted{color:#a8b3d6;font-size:12px}
 </style>
 </head>
 
@@ -36,21 +37,46 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
 <div class="wrap">
   <div class="card">
 
+    <!-- TOP BAR -->
     <div class="grid" style="align-items:center">
       <div class="col-12" style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
         <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
         <button class="smallBtn" onclick="loadData()">🔄 Rafraîchir</button>
         <button class="smallBtn" onclick="goFull()">⛶ Plein écran</button>
+        <button class="smallBtn" id="btnLogin" onclick="show('login')">🔐 Connexion</button>
+        <button class="smallBtn" id="btnLogout" style="display:none" onclick="logout()">🚪 Déconnexion</button>
+        <span class="badge" id="badgeAuth">Non connecté</span>
         <span class="badge" id="badgeFilter">Filtre : aucun</span>
       </div>
     </div>
 
     <div id="status">Prêt.</div>
 
+    <!-- PAGE LOGIN -->
+    <div id="pageLogin" style="display:none">
+      <h2>Connexion</h2>
+      <p class="muted">Connexion Supabase (email + mot de passe). Une fois connecté, tu peux enregistrer des pesées.</p>
+
+      <div class="grid">
+        <div class="col-6">
+          <label>Email</label>
+          <input id="loginEmail" type="email" placeholder="ex: comptoir@sirmet.local" autocomplete="username">
+        </div>
+        <div class="col-6">
+          <label>Mot de passe</label>
+          <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <div class="col-12">
+          <button onclick="login()">SE CONNECTER</button>
+        </div>
+      </div>
+    </div>
+
     <!-- PAGE PESÉE -->
-    <div id="pagePesee">
+    <div id="pagePesee" style="display:none">
       <h2>Pesée</h2>
+      <p class="muted">⚠️ Enregistrement possible uniquement si tu es connecté.</p>
 
       <div class="grid">
         <div class="col-4">
@@ -94,19 +120,14 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
           </div>
         </div>
 
-        <div class="col-6">
-          <label>PIN</label>
-          <input id="pin" type="password" inputmode="numeric" placeholder="••••">
-        </div>
-
-        <div class="col-6" style="display:flex;align-items:end">
+        <div class="col-12">
           <button onclick="save()">ENREGISTRER</button>
         </div>
       </div>
     </div>
 
     <!-- PAGE HISTORIQUE -->
-    <div id="pageHist" style="display:none">
+    <div id="pageHist">
       <h2>Historique</h2>
 
       <div class="grid">
@@ -155,9 +176,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
       <div class="tableWrap">
         <table>
           <thead>
-            <tr>
-              <th>Date</th><th>Ville</th><th>Type</th><th>Nb</th><th class="right">Net</th>
-            </tr>
+            <tr><th>Date</th><th>Ville</th><th>Type</th><th>Nb</th><th class="right">Net</th></tr>
           </thead>
           <tbody id="hist"></tbody>
         </table>
@@ -188,6 +207,17 @@ function setStatus(msg){ $("status").textContent = msg || ""; }
 function setBadge(){
   $("badgeFilter").textContent = currentFilterDate ? ("Filtre : " + currentFilterDate) : "Filtre : aucun";
 }
+function setAuthBadge(user){
+  if(user){
+    $("badgeAuth").textContent = "Connecté : " + (user.email || "ok");
+    $("btnLogin").style.display = "none";
+    $("btnLogout").style.display = "inline-block";
+  } else {
+    $("badgeAuth").textContent = "Non connecté";
+    $("btnLogin").style.display = "inline-block";
+    $("btnLogout").style.display = "none";
+  }
+}
 
 /* Plein écran Android */
 function goFull(){
@@ -198,6 +228,7 @@ function goFull(){
 
 /* Navigation */
 function show(p){
+  $("pageLogin").style.display = (p==="login") ? "block" : "none";
   $("pagePesee").style.display = (p==="pesee") ? "block" : "none";
   $("pageHist").style.display  = (p==="hist")  ? "block" : "none";
   if(p==="hist") loadData();
@@ -208,7 +239,6 @@ function calc(){
   const n = Number($("nb").value);
   const b = num($("brut").value);
   const t = (T[$("type").value] || 0) * n;
-
   $("tare").textContent = r1(t);
   $("net").textContent  = r1(Math.max(0, b - t));
   $("warn").style.display = (b>0 && b<t) ? "block" : "none";
@@ -219,22 +249,50 @@ function calc(){
   $("brut").addEventListener(ev, calc);
 });
 
-/* Login PIN -> user Supabase */
-async function loginWithPin(pin){
-  const { error } = await supabase.auth.signInWithPassword({
-    email: "comptoir@sirmet.local",
-    password: pin.trim()
-  });
-  if(error) throw error;
+/* Auth */
+async function refreshAuth(){
+  const { data } = await supabase.auth.getUser();
+  setAuthBadge(data?.user || null);
+}
+async function login(){
+  try{
+    const email = $("loginEmail").value.trim();
+    const password = $("loginPassword").value;
+    if(!email || !password) return alert("Email + mot de passe.");
+
+    setStatus("Connexion…");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if(error) throw error;
+
+    await refreshAuth();
+    setStatus("✅ Connecté");
+    $("loginPassword").value = "";
+    show("pesee");
+    setTimeout(goFull, 200); // option : plein écran après connexion
+  }catch(e){
+    setStatus("❌ " + (e?.message || String(e)));
+  }
+}
+async function logout(){
+  try{
+    setStatus("Déconnexion…");
+    await supabase.auth.signOut();
+    await refreshAuth();
+    setStatus("✅ Déconnecté");
+    show("hist");
+  }catch(e){
+    setStatus("❌ " + (e?.message || String(e)));
+  }
+}
+function ensureLogged(){
+  // Vérifie la session sans requête réseau
+  const s = supabase.auth.getSession ? null : null;
+  // On va juste tenter getUser au moment d'enregistrer si besoin
 }
 
 /* Enregistrer */
 async function save(){
   try{
-    // Plein écran possible (clique sur ENREGISTRER = geste utilisateur)
-    // Décommente si tu veux forcer le plein écran au premier enregistrement :
-    // goFull();
-
     calc();
     const n = Number($("nb").value);
     const b = num($("brut").value);
@@ -243,11 +301,13 @@ async function save(){
     if(b<=0) return alert("Entre un poids brut.");
     if(b<t)  return alert("Brut inférieur à la tare.");
 
-    const pin = $("pin").value.trim();
-    if(!pin) return alert("Entre le PIN.");
-
-    setStatus("Connexion…");
-    await loginWithPin(pin);
+    // Vérifier login
+    const { data: udata } = await supabase.auth.getUser();
+    if(!udata?.user){
+      alert("Tu dois être connecté pour enregistrer.");
+      show("login");
+      return;
+    }
 
     setStatus("Insertion…");
     const payload = {
@@ -263,7 +323,6 @@ async function save(){
     if(error) throw error;
 
     $("brut").value = "";
-    $("pin").value = "";
     calc();
 
     setStatus("✅ Enregistré – historique mis à jour");
@@ -276,13 +335,11 @@ async function save(){
 
 /* Filtre date -> range ISO (local day) */
 function localDayRangeISO(yyyy_mm_dd){
-  // start local
   const [y,m,d] = yyyy_mm_dd.split("-").map(Number);
   const startLocal = new Date(y, m-1, d, 0,0,0,0);
   const endLocal   = new Date(y, m-1, d+1, 0,0,0,0);
   return { startISO: startLocal.toISOString(), endISO: endLocal.toISOString() };
 }
-
 function todayYYYYMMDD(){
   const now = new Date();
   const y = now.getFullYear();
@@ -290,7 +347,6 @@ function todayYYYYMMDD(){
   const d = String(now.getDate()).padStart(2,"0");
   return `${y}-${m}-${d}`;
 }
-
 function applyFilter(){
   const v = $("dateFilter").value;
   currentFilterDate = v || "";
@@ -310,7 +366,7 @@ function clearFilter(){
 
 /* Récap */
 function renderRecap(rows){
-  const recap = {}; // ville -> {PAM,ASL,ABJ,F,HF}
+  const recap = {};
   rows.forEach(r=>{
     if(!recap[r.ville]) recap[r.ville] = {PAM:0,ASL:0,ABJ:0,F:0,HF:0};
     if(recap[r.ville][r.type] === undefined) return;
@@ -332,7 +388,6 @@ function renderRecap(rows){
   villes.forEach(v=>{
     const r = recap[v];
     TYPES.forEach(t=> grand[t]+=r[t]);
-
     const total = TYPES.reduce((s,t)=>s+r[t],0);
     tb.innerHTML += `
       <tr>
@@ -381,7 +436,6 @@ async function loadData(){
     const { data, error } = await q;
     if(error) throw error;
 
-    // Table historique
     const tb = $("hist");
     tb.innerHTML = "";
     if(!data || data.length===0){
@@ -398,20 +452,23 @@ async function loadData(){
       });
     }
 
-    // Récap par ville/type (sur le filtre)
     renderRecap(data || []);
-
     setStatus("");
   }catch(e){
     setStatus("❌ " + (e?.message || String(e)));
   }
 }
 
-/* init */
+/* Init */
 setBadge();
 calc();
-// (option) filtre par défaut = aujourd'hui : décommente si tu veux
-// todayFilter();
+refreshAuth();
+show("hist");
+
+// Mise à jour badge si la session change
+supabase.auth.onAuthStateChange((_event, session)=>{
+  setAuthBadge(session?.user || null);
+});
 </script>
 </body>
 </html>
