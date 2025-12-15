@@ -152,7 +152,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
           </div>
         </div>
 
-        <!-- ADMIN PANEL -->
+        <!-- ADMIN PANEL (affiché seulement si admin) -->
         <div id="adminPanel" style="display:none">
           <hr>
           <h3>Admin</h3>
@@ -188,7 +188,8 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
           <table>
             <thead>
               <tr>
-                <th>Date</th><th>Ville</th><th>Type</th><th>Nb</th><th class="right">Net</th><th id="thAdmin" style="display:none">Admin</th>
+                <th>Date</th><th>Ville</th><th>Type</th><th>Nb</th><th class="right">Net</th>
+                <th id="thAdmin" style="display:none">Admin</th>
               </tr>
             </thead>
             <tbody id="hist"></tbody>
@@ -205,11 +206,6 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
 const SUPABASE_URL = "https://dzfokswsmkvhjhziqakj.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0";
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-/* ✅ ADMINS */
-const ADMIN_EMAILS = [
-  "boyrieanthony2@gmail.com"
-];
 
 /* TARAGES */
 const T = { PAM:59, ASL:45, ABJ:43, FRIGO:0, HF:0 };
@@ -275,6 +271,13 @@ function calc(){
   $("brut").addEventListener(ev, calc);
 });
 
+/* ✅ Admin check côté Supabase (pas dans le code) */
+async function checkAdmin(){
+  const { data, error } = await supabase.rpc("is_admin");
+  if(error) throw error;
+  return !!data;
+}
+
 /* Auth */
 async function login(){
   try{
@@ -288,7 +291,7 @@ async function login(){
 
     const { data } = await supabase.auth.getUser();
     currentUser = data?.user || null;
-    isAdminUser = !!(currentUser?.email && ADMIN_EMAILS.includes(currentUser.email));
+    isAdminUser = await checkAdmin();
 
     setAuthBadges();
     setLoginMsg("✅ Connecté");
@@ -512,16 +515,18 @@ setBadge();
 calc();
 showLogin();
 
-supabase.auth.getUser().then(({data})=>{
+/* Si session déjà active, skip login */
+(async ()=>{
+  const { data } = await supabase.auth.getUser();
   if(data?.user){
     currentUser = data.user;
-    isAdminUser = !!(currentUser?.email && ADMIN_EMAILS.includes(currentUser.email));
+    try { isAdminUser = await checkAdmin(); } catch { isAdminUser = false; }
     setAuthBadges();
     showApp();
     show("hist");
     loadData();
   }
-});
+})();
 </script>
 </body>
 </html>
