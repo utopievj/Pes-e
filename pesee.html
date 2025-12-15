@@ -5,19 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Pesée</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 body{margin:0;font-family:system-ui;background:#0b0c10;color:#e9eef6}
-.wrap{max-width:900px;margin:auto;padding:16px}
+.wrap{max-width:980px;margin:auto;padding:16px}
 .card{background:#12141b;border:1px solid #222634;border-radius:16px;padding:16px}
 label{display:block;margin:8px 0 4px;font-size:12px;color:#a8b3d6}
 input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #262b3a;background:#0f1118;color:#fff;box-sizing:border-box}
 button{padding:14px;border-radius:12px;border:1px solid #7a1f1f;background:#b22222;color:#fff;font-weight:800;cursor:pointer}
 button:hover{background:#d32f2f}
-.smallBtn{padding:10px;font-size:12px}
+.smallBtn{padding:10px 12px;font-size:12px}
 .grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr)}
-.col-4{grid-column:span 4}.col-2{grid-column:span 2}.col-6{grid-column:span 6}.col-12{grid-column:span 12}
-@media(max-width:760px){.col-4,.col-2,.col-6{grid-column:span 12}}
-.big{font-size:32px;font-weight:900}
+.col-4{grid-column:span 4}.col-3{grid-column:span 3}.col-2{grid-column:span 2}.col-6{grid-column:span 6}.col-12{grid-column:span 12}
+@media(max-width:820px){.col-4,.col-3,.col-2,.col-6{grid-column:span 12}}
+.big{font-size:34px;font-weight:900}
 .net{margin-top:10px;padding:12px;border:1px solid #222634;border-radius:12px;background:#0f1118}
 .warn{color:#ffcc66;font-size:12px;display:none;margin-top:6px}
 .tableWrap{overflow:auto;border:1px solid #222634;border-radius:12px;margin-top:10px}
@@ -26,203 +27,391 @@ th,td{padding:8px;border-bottom:1px solid #222634}
 th{font-size:12px;color:#a8b3d6;white-space:nowrap;text-align:left}
 .right{text-align:right}
 #status{margin:10px 0;font-size:12px;white-space:pre-wrap;color:#ffd27a}
+.badge{display:inline-block;padding:4px 10px;border:1px solid #222634;border-radius:999px;font-size:12px;color:#a8b3d6}
+hr{border:0;border-top:1px solid #222634;margin:14px 0}
 </style>
 </head>
+
 <body>
-<div class="wrap"><div class="card">
+<div class="wrap">
+  <div class="card">
 
-<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-  <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
-  <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
-  <button class="smallBtn" onclick="loadData()">🔄 Rafraîchir</button>
-  <button class="smallBtn" onclick="testCount()">🧪 TEST DB</button>
-</div>
-
-<div id="status">Prêt.</div>
-
-<div id="pagePesee">
-  <h2>Pesée</h2>
-  <div class="grid">
-    <div class="col-4">
-      <label>Ville</label>
-      <select id="ville">
-        <option>Boulanger Tarbes</option><option>Pau</option><option>Envie</option>
-        <option>Assat</option><option>Coaraze</option><option>Espoey</option>
-      </select>
-    </div>
-
-    <div class="col-4">
-      <label>Type</label>
-      <select id="type">
-        <option value="PAM">PAM</option>
-        <option value="ASL">ASL</option>
-        <option value="ABJ">ABJ</option>
-        <option value="FRIGO">Frigo</option>
-        <option value="HF">Hors froid</option>
-      </select>
-    </div>
-
-    <div class="col-2">
-      <label>Nb</label>
-      <select id="nb"><option>1</option><option>2</option><option>3</option><option>4</option></select>
-    </div>
-
-    <div class="col-2">
-      <label>Brut (kg)</label>
-      <input id="brut" type="number" step="0.1">
-    </div>
-
-    <div class="col-12">
-      <div class="net">
-        <div>Tare : <b id="tare">0</b> kg</div>
-        <div class="big">Net : <span id="net">0</span> kg</div>
-        <div id="warn" class="warn">⚠️ Brut inférieur à la tare</div>
+    <div class="grid" style="align-items:center">
+      <div class="col-12" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
+        <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
+        <button class="smallBtn" onclick="loadData()">🔄 Rafraîchir</button>
+        <button class="smallBtn" onclick="goFull()">⛶ Plein écran</button>
+        <span class="badge" id="badgeFilter">Filtre : aucun</span>
       </div>
     </div>
 
-    <div class="col-6">
-      <label>PIN</label>
-      <input id="pin" type="password" inputmode="numeric" placeholder="••••">
+    <div id="status">Prêt.</div>
+
+    <!-- PAGE PESÉE -->
+    <div id="pagePesee">
+      <h2>Pesée</h2>
+
+      <div class="grid">
+        <div class="col-4">
+          <label>Ville</label>
+          <select id="ville">
+            <option>Boulanger Tarbes</option>
+            <option>Pau</option>
+            <option>Envie</option>
+            <option>Assat</option>
+            <option>Coaraze</option>
+            <option>Espoey</option>
+          </select>
+        </div>
+
+        <div class="col-4">
+          <label>Type</label>
+          <select id="type">
+            <option value="PAM">PAM</option>
+            <option value="ASL">ASL</option>
+            <option value="ABJ">ABJ</option>
+            <option value="FRIGO">Frigo</option>
+            <option value="HF">Hors froid</option>
+          </select>
+        </div>
+
+        <div class="col-2">
+          <label>Nb</label>
+          <select id="nb"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+        </div>
+
+        <div class="col-2">
+          <label>Brut (kg)</label>
+          <input id="brut" type="number" step="0.1" placeholder="Ex: 120.5">
+        </div>
+
+        <div class="col-12">
+          <div class="net">
+            <div>Tare : <b id="tare">0</b> kg</div>
+            <div class="big">Net : <span id="net">0</span> kg</div>
+            <div id="warn" class="warn">⚠️ Brut inférieur à la tare</div>
+          </div>
+        </div>
+
+        <div class="col-6">
+          <label>PIN</label>
+          <input id="pin" type="password" inputmode="numeric" placeholder="••••">
+        </div>
+
+        <div class="col-6" style="display:flex;align-items:end">
+          <button onclick="save()">ENREGISTRER</button>
+        </div>
+      </div>
     </div>
 
-    <div class="col-6" style="display:flex;align-items:end">
-      <button onclick="save()">ENREGISTRER</button>
+    <!-- PAGE HISTORIQUE -->
+    <div id="pageHist" style="display:none">
+      <h2>Historique</h2>
+
+      <div class="grid">
+        <div class="col-4">
+          <label>Date (jour)</label>
+          <input id="dateFilter" type="date">
+        </div>
+        <div class="col-2" style="display:flex;align-items:end">
+          <button class="smallBtn" onclick="applyFilter()">Filtrer</button>
+        </div>
+        <div class="col-2" style="display:flex;align-items:end">
+          <button class="smallBtn" onclick="todayFilter()">Aujourd’hui</button>
+        </div>
+        <div class="col-2" style="display:flex;align-items:end">
+          <button class="smallBtn" onclick="clearFilter()">Tout</button>
+        </div>
+        <div class="col-2" style="display:flex;align-items:end">
+          <button class="smallBtn" onclick="goFull()">⛶ Plein écran</button>
+        </div>
+      </div>
+
+      <hr>
+
+      <h3>Récap par ville et par type (sur le filtre)</h3>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ville</th>
+              <th class="right">PAM</th>
+              <th class="right">ASL</th>
+              <th class="right">ABJ</th>
+              <th class="right">F</th>
+              <th class="right">HF</th>
+              <th class="right">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody id="recap"></tbody>
+          <tfoot id="recapFoot"></tfoot>
+        </table>
+      </div>
+
+      <hr>
+
+      <h3>Liste des pesées (sur le filtre)</h3>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th><th>Ville</th><th>Type</th><th>Nb</th><th class="right">Net</th>
+            </tr>
+          </thead>
+          <tbody id="hist"></tbody>
+        </table>
+      </div>
     </div>
+
   </div>
 </div>
-
-<div id="pageHist" style="display:none">
-  <h2>Historique</h2>
-  <div class="tableWrap">
-    <table>
-      <thead>
-        <tr><th>Date</th><th>Ville</th><th>Type</th><th>Nb</th><th class="right">Net</th></tr>
-      </thead>
-      <tbody id="hist"></tbody>
-    </table>
-  </div>
-</div>
-
-</div></div>
 
 <script>
-const SUPABASE_URL="https://dzfokswsmkvhjhziqakj.supabase.co";
-const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0";
-const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+/* ✅ SUPABASE (TES INFOS) */
+const SUPABASE_URL = "https://dzfokswsmkvhjhziqakj.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const T={PAM:59,ASL:45,ABJ:43,FRIGO:0,HF:0};
-const A={PAM:"PAM",ASL:"ASL",ABJ:"ABJ",FRIGO:"F",HF:"HF"};
-const $=id=>document.getElementById(id);
-const r1=x=>Math.round(x*10)/10;
-const num=x=>{const v=Number(String(x).replace(",","."));return Number.isFinite(v)?v:0;};
+/* TARAGES */
+const T = { PAM:59, ASL:45, ABJ:43, FRIGO:0, HF:0 };
+const A = { PAM:"PAM", ASL:"ASL", ABJ:"ABJ", FRIGO:"F", HF:"HF" };
+const TYPES = ["PAM","ASL","ABJ","F","HF"];
 
-function setStatus(s){ $("status").textContent = s; }
+const $ = (id)=>document.getElementById(id);
+const r1 = (x)=>Math.round(x*10)/10;
+const num = (x)=>{ const v=Number(String(x).replace(",", ".")); return Number.isFinite(v)?v:0; };
 
+let currentFilterDate = ""; // YYYY-MM-DD ou ""
+
+function setStatus(msg){ $("status").textContent = msg || ""; }
+function setBadge(){
+  $("badgeFilter").textContent = currentFilterDate ? ("Filtre : " + currentFilterDate) : "Filtre : aucun";
+}
+
+/* Plein écran Android */
+function goFull(){
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen();
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+}
+
+/* Navigation */
 function show(p){
-  $("pagePesee").style.display = p==="pesee" ? "block" : "none";
-  $("pageHist").style.display  = p==="hist"  ? "block" : "none";
+  $("pagePesee").style.display = (p==="pesee") ? "block" : "none";
+  $("pageHist").style.display  = (p==="hist")  ? "block" : "none";
   if(p==="hist") loadData();
 }
 
+/* Calcul net */
 function calc(){
-  const n=Number($("nb").value);
-  const b=num($("brut").value);
-  const t=(T[$("type").value]||0)*n;
-  $("tare").textContent=r1(t);
-  $("net").textContent=r1(Math.max(0,b-t));
-  $("warn").style.display=(b>0 && b<t)?"block":"none";
+  const n = Number($("nb").value);
+  const b = num($("brut").value);
+  const t = (T[$("type").value] || 0) * n;
+
+  $("tare").textContent = r1(t);
+  $("net").textContent  = r1(Math.max(0, b - t));
+  $("warn").style.display = (b>0 && b<t) ? "block" : "none";
 }
 ["input","change"].forEach(ev=>{
-  $("type").addEventListener(ev,calc);
-  $("nb").addEventListener(ev,calc);
-  $("brut").addEventListener(ev,calc);
+  $("type").addEventListener(ev, calc);
+  $("nb").addEventListener(ev, calc);
+  $("brut").addEventListener(ev, calc);
 });
 
+/* Login PIN -> user Supabase */
+async function loginWithPin(pin){
+  const { error } = await supabase.auth.signInWithPassword({
+    email: "comptoir@sirmet.local",
+    password: pin.trim()
+  });
+  if(error) throw error;
+}
+
+/* Enregistrer */
 async function save(){
   try{
-    calc();
-    const n=Number($("nb").value);
-    const b=num($("brut").value);
-    const t=(T[$("type").value]||0)*n;
-    if(b<=0) return alert("Entre un brut.");
-    if(b<t) return alert("Brut < tare.");
+    // Plein écran possible (clique sur ENREGISTRER = geste utilisateur)
+    // Décommente si tu veux forcer le plein écran au premier enregistrement :
+    // goFull();
 
-    const p=$("pin").value.trim();
-    if(!p) return alert("Entre le PIN.");
+    calc();
+    const n = Number($("nb").value);
+    const b = num($("brut").value);
+    const t = (T[$("type").value] || 0) * n;
+
+    if(b<=0) return alert("Entre un poids brut.");
+    if(b<t)  return alert("Brut inférieur à la tare.");
+
+    const pin = $("pin").value.trim();
+    if(!pin) return alert("Entre le PIN.");
 
     setStatus("Connexion…");
-    const { error: e1 } = await supabase.auth.signInWithPassword({
-      email:"comptoir@sirmet.local",
-      password:p
-    });
-    if(e1) throw e1;
+    await loginWithPin(pin);
 
     setStatus("Insertion…");
-    const { error: e2 } = await supabase.from("pesees").insert({
-      ville:$("ville").value,
-      type:A[$("type").value],
-      nb:n,
-      brut:r1(b),
-      tare:r1(t),
-      net:r1(b-t)
-    });
-    if(e2) throw e2;
+    const payload = {
+      ville: $("ville").value,
+      type: A[$("type").value],
+      nb: n,
+      brut: r1(b),
+      tare: r1(t),
+      net: r1(b - t)
+    };
 
-    $("brut").value=""; $("pin").value=""; calc();
-    setStatus("✅ Enregistré. Je charge l’historique…");
+    const { error } = await supabase.from("pesees").insert(payload);
+    if(error) throw error;
+
+    $("brut").value = "";
+    $("pin").value = "";
+    calc();
+
+    setStatus("✅ Enregistré – historique mis à jour");
     await loadData();
     show("hist");
-  }catch(err){
-    setStatus("❌ ERREUR:\n" + (err?.message || String(err)));
+  }catch(e){
+    setStatus("❌ " + (e?.message || String(e)));
   }
 }
 
+/* Filtre date -> range ISO (local day) */
+function localDayRangeISO(yyyy_mm_dd){
+  // start local
+  const [y,m,d] = yyyy_mm_dd.split("-").map(Number);
+  const startLocal = new Date(y, m-1, d, 0,0,0,0);
+  const endLocal   = new Date(y, m-1, d+1, 0,0,0,0);
+  return { startISO: startLocal.toISOString(), endISO: endLocal.toISOString() };
+}
+
+function todayYYYYMMDD(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,"0");
+  const d = String(now.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+
+function applyFilter(){
+  const v = $("dateFilter").value;
+  currentFilterDate = v || "";
+  setBadge();
+  loadData();
+}
+function todayFilter(){
+  $("dateFilter").value = todayYYYYMMDD();
+  applyFilter();
+}
+function clearFilter(){
+  $("dateFilter").value = "";
+  currentFilterDate = "";
+  setBadge();
+  loadData();
+}
+
+/* Récap */
+function renderRecap(rows){
+  const recap = {}; // ville -> {PAM,ASL,ABJ,F,HF}
+  rows.forEach(r=>{
+    if(!recap[r.ville]) recap[r.ville] = {PAM:0,ASL:0,ABJ:0,F:0,HF:0};
+    if(recap[r.ville][r.type] === undefined) return;
+    recap[r.ville][r.type] += num(r.net);
+  });
+
+  const villes = Object.keys(recap).sort((a,b)=>a.localeCompare(b,"fr"));
+  const tb = $("recap");
+  tb.innerHTML = "";
+
+  let grand = {PAM:0,ASL:0,ABJ:0,F:0,HF:0};
+
+  if(villes.length===0){
+    tb.innerHTML = `<tr><td colspan="7" style="color:#a8b3d6">Aucune donnée sur ce filtre</td></tr>`;
+    $("recapFoot").innerHTML = "";
+    return;
+  }
+
+  villes.forEach(v=>{
+    const r = recap[v];
+    TYPES.forEach(t=> grand[t]+=r[t]);
+
+    const total = TYPES.reduce((s,t)=>s+r[t],0);
+    tb.innerHTML += `
+      <tr>
+        <td>${v}</td>
+        <td class="right">${r1(r.PAM)}</td>
+        <td class="right">${r1(r.ASL)}</td>
+        <td class="right">${r1(r.ABJ)}</td>
+        <td class="right">${r1(r.F)}</td>
+        <td class="right">${r1(r.HF)}</td>
+        <td class="right"><b>${r1(total)}</b></td>
+      </tr>
+    `;
+  });
+
+  const grandTotal = TYPES.reduce((s,t)=>s+grand[t],0);
+  $("recapFoot").innerHTML = `
+    <tr>
+      <td><b>TOTAL</b></td>
+      <td class="right"><b>${r1(grand.PAM)}</b></td>
+      <td class="right"><b>${r1(grand.ASL)}</b></td>
+      <td class="right"><b>${r1(grand.ABJ)}</b></td>
+      <td class="right"><b>${r1(grand.F)}</b></td>
+      <td class="right"><b>${r1(grand.HF)}</b></td>
+      <td class="right"><b>${r1(grandTotal)}</b></td>
+    </tr>
+  `;
+}
+
+/* Charger données (avec filtre date) */
 async function loadData(){
   try{
-    setStatus("Chargement historique…");
-    const { data, error } = await supabase
+    setStatus("Chargement…");
+    setBadge();
+
+    let q = supabase
       .from("pesees")
       .select("created_at, ville, type, nb, net")
       .order("created_at", { ascending:false })
-      .limit(300);
+      .limit(500);
 
-    if(error) throw error;
-
-    setStatus("✅ Lignes reçues : " + (data?.length || 0));
-    const tb=$("hist");
-    tb.innerHTML="";
-    if(!data || data.length===0){
-      tb.innerHTML="<tr><td colspan='5'>Aucune donnée</td></tr>";
-      return;
+    if(currentFilterDate){
+      const { startISO, endISO } = localDayRangeISO(currentFilterDate);
+      q = q.gte("created_at", startISO).lt("created_at", endISO);
     }
-    data.forEach(e=>{
-      tb.innerHTML += `<tr>
-        <td>${new Date(e.created_at).toLocaleString()}</td>
-        <td>${e.ville}</td>
-        <td>${e.type}</td>
-        <td>${e.nb}</td>
-        <td class="right">${e.net}</td>
-      </tr>`;
-    });
-  }catch(err){
-    setStatus("❌ ERREUR HISTORIQUE:\n" + (err?.message || String(err)));
-  }
-}
 
-async function testCount(){
-  try{
-    setStatus("Test DB…");
-    const { count, error } = await supabase
-      .from("pesees")
-      .select("*", { count:"exact", head:true });
+    const { data, error } = await q;
     if(error) throw error;
-    setStatus("✅ COUNT Supabase = " + count);
-  }catch(err){
-    setStatus("❌ TEST DB:\n" + (err?.message || String(err)));
+
+    // Table historique
+    const tb = $("hist");
+    tb.innerHTML = "";
+    if(!data || data.length===0){
+      tb.innerHTML = `<tr><td colspan="5" style="color:#a8b3d6">Aucune donnée</td></tr>`;
+    } else {
+      data.forEach(e=>{
+        tb.innerHTML += `<tr>
+          <td>${new Date(e.created_at).toLocaleString()}</td>
+          <td>${e.ville}</td>
+          <td>${e.type}</td>
+          <td>${e.nb}</td>
+          <td class="right">${e.net}</td>
+        </tr>`;
+      });
+    }
+
+    // Récap par ville/type (sur le filtre)
+    renderRecap(data || []);
+
+    setStatus("");
+  }catch(e){
+    setStatus("❌ " + (e?.message || String(e)));
   }
 }
 
+/* init */
+setBadge();
 calc();
+// (option) filtre par défaut = aujourd'hui : décommente si tu veux
+// todayFilter();
 </script>
 </body>
 </html>
