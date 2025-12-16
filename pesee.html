@@ -205,6 +205,29 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
           </table>
         </div>
 
+        <!-- ✅ PAM TRIÉ (NOUVEAU) -->
+        <h4 style="margin-top:14px">PAM trié</h4>
+
+        <h4 style="margin-top:10px">Total (toutes villes)</h4>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr><th class="right">PAM TRIÉ</th></tr>
+            </thead>
+            <tbody id="recapTrieAll"></tbody>
+          </table>
+        </div>
+
+        <h4 style="margin-top:14px">Par ville</h4>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr><th>Ville</th><th class="right">PAM TRIÉ</th></tr>
+            </thead>
+            <tbody id="recapTrieByCity"></tbody>
+          </table>
+        </div>
+
         <hr>
 
         <h3>En attente (hors-ligne)</h3>
@@ -245,15 +268,26 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
         <h2>Trie</h2>
 
         <div class="grid">
-          <div class="col-12 center" style="min-height:auto">
-            <button class="smallBtn danger" onclick="changePam(-1)">-1 PAM</button>
-
-            <div class="big" style="margin:0 20px">
-              <span id="pamMatinAff">0</span> PAM
-            </div>
-
-            <button class="smallBtn" onclick="changePam(1)">+1 PAM</button>
+          <div class="col-4">
+            <label>Ville</label>
+            <select id="trieVille"></select>
           </div>
+
+          <div class="col-4">
+            <label>Nombre de PAM trié</label>
+            <select id="trieNb"></select>
+          </div>
+
+          <div class="col-4" style="display:flex;gap:10px;align-items:end">
+            <button style="flex:1" onclick="saveTrie(+1)">＋</button>
+            <button class="danger" style="flex:1" onclick="saveTrie(-1)">－</button>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="muted">
+          Chaque clic enregistre une ligne <b>PAM_TRIE</b> (nb positif ou négatif) et ça apparait dans l’historique.
         </div>
       </div>
 
@@ -285,14 +319,6 @@ const num = (x)=>{ const v=Number(String(x).replace(",", ".")); return Number.is
 let currentUser = null;
 let isAdminUser = false;
 let lastHistorySource = "LIVE";
-
-/* ===== TRIE PAM MATIN (simple) ===== */
-let pamMatin = 0;
-function changePam(delta){
-  pamMatin += delta;
-  if(pamMatin < 0) pamMatin = 0;
-  $("pamMatinAff").textContent = String(pamMatin);
-}
 
 /* UI */
 function setStatus(msg){ $("status").textContent = msg || ""; }
@@ -335,6 +361,10 @@ function show(p){
     loadData();
     renderPending();
     renderMixedHistory();
+  }
+  if(p==="trie"){
+    // Assure le select ville trie à jour
+    mirrorTrieVille();
   }
 }
 
@@ -381,13 +411,14 @@ function renderPending(){
     return;
   }
   arr.forEach(x=>{
+    const netDisp = (String(x.type).toUpperCase()==="PAM_TRIE") ? "" : x.net;
     tb.innerHTML += `
       <tr>
         <td>${new Date(x.local_created_at).toLocaleString()}</td>
         <td>${x.ville}</td>
         <td>${x.type}</td>
         <td class="right">${x.nb}</td>
-        <td class="right">${x.net}</td>
+        <td class="right">${netDisp}</td>
         <td class="right">
           <button class="smallBtn danger" onclick="deletePending('${x.client_id}')">Suppr</button>
         </td>
@@ -456,13 +487,15 @@ function renderMixedHistory(){
           : `<td><button class="smallBtn danger" onclick="deleteRow(${r.id})">Suppr</button></td>`)
       : "";
 
+    const netDisp = (String(r.type).toUpperCase()==="PAM_TRIE") ? "" : r.net;
+
     tb.innerHTML += `
       <tr>
         <td>${new Date(r.created_at).toLocaleString()}</td>
         <td>${r.ville}</td>
         <td>${r.type}</td>
         <td class="right">${r.nb}</td>
-        <td class="right">${r.net}</td>
+        <td class="right">${netDisp}</td>
         <td>${srcTag}</td>
         ${adminCell}
       </tr>`;
@@ -586,6 +619,9 @@ async function loadCities(){
     });
     if(!sel.options.length) sel.innerHTML = "<option>—</option>";
 
+    // Trie: on copie les mêmes villes
+    mirrorTrieVille();
+
     const tb = $("citiesAdmin");
     tb.innerHTML = "";
     if(!isAdminUser){
@@ -605,6 +641,22 @@ async function loadCities(){
   }catch(e){
     setStatus("❌ VILLES: " + (e?.message || String(e)));
   }
+}
+
+function mirrorTrieVille(){
+  const src = $("ville");
+  const dst = $("trieVille");
+  if(!src || !dst) return;
+
+  const prev = dst.value;
+  dst.innerHTML = "";
+  Array.from(src.options).forEach(o=>{
+    const opt = document.createElement("option");
+    opt.value = o.value;
+    opt.textContent = o.textContent;
+    dst.appendChild(opt);
+  });
+  if(prev) dst.value = prev;
 }
 
 async function addCity(){
@@ -718,6 +770,60 @@ async function saveSafe(){
   }
 }
 
+/* ✅ TRIE : enregistre PAM_TRIE automatiquement (Supabase sinon pending) */
+async function saveTrie(sign){
+  try{
+    const ville = ($("trieVille").value || "").trim();
+    const qty = Number($("trieNb").value) || 0;
+    if(!ville || ville==="—") return alert("Choisis une ville.");
+    if(qty<=0) return alert("Choisis un nombre.");
+
+    const nb = sign * qty; // +qty ou -qty
+    const client_id = "t_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+
+    const payload = {
+      client_id,
+      ville,
+      type: "PAM_TRIE",
+      nb: nb,
+      brut: 0,
+      tare: 0,
+      net: 0
+    };
+
+    const { error } = await supabase
+      .from("pesees")
+      .upsert(payload, { onConflict: "client_id" });
+
+    if(error) throw error;
+
+    await loadData();
+    await buildRecap();
+    renderPending();
+    renderMixedHistory();
+  }catch(e){
+    const ville = ($("trieVille").value || "").trim();
+    const qty = Number($("trieNb").value) || 0;
+    const nb = sign * qty;
+    const client_id = "t_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+
+    addPending({
+      client_id,
+      local_created_at: Date.now(),
+      ville,
+      type: "PAM_TRIE",
+      nb: nb,
+      brut: 0,
+      tare: 0,
+      net: 0
+    });
+
+    renderPending();
+    renderMixedHistory();
+    buildRecap();
+  }
+}
+
 /* Historique Supabase -> cache */
 async function loadData(){
   try{
@@ -792,23 +898,39 @@ function inLocalDay(isoOrMs, start, end){
   const t = typeof isoOrMs==="number" ? isoOrMs : new Date(isoOrMs).getTime();
   return t>=start && t<end;
 }
+
+/* ✅ Récap avec PAM_TRIE */
 function recapFromRows(rows, pendingRows){
   const totalAll = {PAM:0,ASL:0,ABJ:0,F:0,HF:0};
   const byCity = {};
-  const add = (ville, type, net)=>{
+
+  let pamTrieAll = 0;
+  const pamTrieByCity = {};
+
+  const add = (ville, type, net, nb)=>{
     const t = String(type||"").toUpperCase();
+    const v = ville || "—";
+
+    if(t === "PAM_TRIE"){
+      const n = Number(nb) || 0;
+      pamTrieAll += n;
+      pamTrieByCity[v] = (pamTrieByCity[v] || 0) + n;
+      return;
+    }
+
     if(!TYPES.includes(t)) return;
     const n = num(net);
     totalAll[t]+=n;
-    const v = ville || "—";
     if(!byCity[v]) byCity[v]={PAM:0,ASL:0,ABJ:0,F:0,HF:0};
     byCity[v][t]+=n;
   };
-  (rows||[]).forEach(r=> add(r.ville, r.type, r.net));
-  (pendingRows||[]).forEach(p=> add(p.ville, p.type, p.net));
-  return { totalAll, byCity };
+
+  (rows||[]).forEach(r=> add(r.ville, r.type, r.net, r.nb));
+  (pendingRows||[]).forEach(p=> add(p.ville, p.type, p.net, p.nb));
+  return { totalAll, byCity, pamTrieAll, pamTrieByCity };
 }
-function renderRecapTables(totalAll, byCity){
+
+function renderRecapTables(totalAll, byCity, pamTrieAll, pamTrieByCity){
   const sumAll = TYPES.reduce((s,k)=>s+totalAll[k],0);
   $("recapAll").innerHTML = `
     <tr>
@@ -819,32 +941,47 @@ function renderRecapTables(totalAll, byCity){
       <td class="right">${r1(totalAll.HF)}</td>
       <td class="right"><b>${r1(sumAll)}</b></td>
     </tr>`;
+
   const villes = Object.keys(byCity).sort((a,b)=>a.localeCompare(b,"fr"));
   if(!villes.length){
     $("recapByCity").innerHTML = `<tr><td colspan="7" class="muted">Aucune donnée</td></tr>`;
-    return;
+  }else{
+    $("recapByCity").innerHTML = villes.map(v=>{
+      const o = byCity[v];
+      const sum = TYPES.reduce((s,k)=>s+o[k],0);
+      return `
+        <tr>
+          <td>${v}</td>
+          <td class="right">${r1(o.PAM)}</td>
+          <td class="right">${r1(o.ASL)}</td>
+          <td class="right">${r1(o.ABJ)}</td>
+          <td class="right">${r1(o.F)}</td>
+          <td class="right">${r1(o.HF)}</td>
+          <td class="right"><b>${r1(sum)}</b></td>
+        </tr>`;
+    }).join("");
   }
-  $("recapByCity").innerHTML = villes.map(v=>{
-    const o = byCity[v];
-    const sum = TYPES.reduce((s,k)=>s+o[k],0);
-    return `
+
+  $("recapTrieAll").innerHTML = `<tr><td class="right"><b>${Number(pamTrieAll)||0}</b></td></tr>`;
+
+  const villesTrie = Object.keys(pamTrieByCity||{}).sort((a,b)=>a.localeCompare(b,"fr"));
+  if(!villesTrie.length){
+    $("recapTrieByCity").innerHTML = `<tr><td colspan="2" class="muted">Aucune donnée</td></tr>`;
+  }else{
+    $("recapTrieByCity").innerHTML = villesTrie.map(v=>`
       <tr>
         <td>${v}</td>
-        <td class="right">${r1(o.PAM)}</td>
-        <td class="right">${r1(o.ASL)}</td>
-        <td class="right">${r1(o.ABJ)}</td>
-        <td class="right">${r1(o.F)}</td>
-        <td class="right">${r1(o.HF)}</td>
-        <td class="right"><b>${r1(sum)}</b></td>
-      </tr>`;
-  }).join("");
+        <td class="right"><b>${Number(pamTrieByCity[v])||0}</b></td>
+      </tr>
+    `).join("");
+  }
 }
+
 async function buildRecap(){
   try{
     const date = $("recapDate").value || ymdToday();
     $("recapDate").value = date;
 
-    // try live
     const [y,m,d]=date.split("-").map(Number);
     const s=new Date(y,m-1,d,0,0,0,0);
     const e=new Date(y,m-1,d+1,0,0,0,0);
@@ -852,34 +989,52 @@ async function buildRecap(){
     try{
       const { data, error } = await supabase
         .from("pesees")
-        .select("ville,type,net,created_at")
+        .select("ville,type,net,nb,created_at")
         .gte("created_at", s.toISOString())
         .lt("created_at", e.toISOString())
         .limit(5000);
       if(error) throw error;
 
+      const rows = data || [];
       const { start, end } = dayRangeLocal(date);
       const pendToday = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
-      const recap = recapFromRows(data || [], pendToday);
-      renderRecapTables(recap.totalAll, recap.byCity);
+
+      const recap = recapFromRows(rows, pendToday);
+      renderRecapTables(recap.totalAll, recap.byCity, recap.pamTrieAll, recap.pamTrieByCity);
       return;
     }catch{
       const { start, end } = dayRangeLocal(date);
       const cache = getHistoryCache().filter(r=> inLocalDay(r.created_at, start, end));
       const pend = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
+
       const recap = recapFromRows(cache, pend);
-      renderRecapTables(recap.totalAll, recap.byCity);
+      renderRecapTables(recap.totalAll, recap.byCity, recap.pamTrieAll, recap.pamTrieByCity);
       return;
     }
   }catch(e){
     $("recapAll").innerHTML = `<tr><td colspan="6">Erreur: ${(e?.message||String(e))}</td></tr>`;
     $("recapByCity").innerHTML = "";
+    $("recapTrieAll").innerHTML = "";
+    $("recapTrieByCity").innerHTML = "";
   }
 }
 
 /* Init */
 (async ()=>{
   refreshNetwork();
+
+  // Remplit select Trie (1..50)
+  const selTrieNb = $("trieNb");
+  if(selTrieNb){
+    selTrieNb.innerHTML = "";
+    for(let i=1;i<=50;i++){
+      const o=document.createElement("option");
+      o.value=String(i);
+      o.textContent=String(i);
+      selTrieNb.appendChild(o);
+    }
+  }
+
   setPending(getPending());
   renderPending();
   calc();
@@ -902,6 +1057,7 @@ async function buildRecap(){
 
     await loadCities();
     await loadData();
+
     $("recapDate").value = ymdToday();
     buildRecap();
     syncPending();
