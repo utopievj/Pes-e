@@ -41,7 +41,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
 .tagWait{border-color:#7a1f1f;color:#ffd27a}
 .tagCache{border-color:#3a4a7a;color:#b7c6ff}
 
-/* === CLEAN VISUEL === */
+/* === CLEAN VISUEL : plus de bleu + pas de petites descriptions === */
 label, th, .badge, .muted, .tag { color:#ffffff !important; }
 .muted, .tag { display:none !important; }
 #status { display:none !important; }
@@ -78,8 +78,8 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
         <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
         <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
         <button class="smallBtn" onclick="show('trie')">TRIE</button>
-        <button class="smallBtn" onclick="loadData()">🔄 Rafraîchir</button>
-        <button class="smallBtn" onclick="syncPending()">⟳ SYNC (<span id="pendingCount">0</span>)</button>
+        <button class="smallBtn" onclick="loadData(); loadTrieData();">🔄 Rafraîchir</button>
+        <button class="smallBtn" onclick="syncPending(); syncTriePending();">⟳ SYNC (<span id="pendingCount">0</span>)</button>
         <button class="smallBtn" onclick="logout()">🚪 Déconnexion</button>
         <span class="badge" id="badgeUser">Connecté</span>
         <span class="badge" id="badgeNet">Réseau : ?</span>
@@ -111,13 +111,13 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
           </div>
 
           <div class="col-2">
-            <label>Nb</label>
-            <input id="nb" type="number" min="1" step="1" value="1" inputmode="numeric">
+            <label>Nb bacs</label>
+            <input id="nb" type="number" inputmode="numeric" pattern="[0-9]*" min="1" value="1">
           </div>
 
           <div class="col-2">
             <label>Brut (kg)</label>
-            <input id="brut" type="number" step="0.1" inputmode="decimal" placeholder="Ex: 120.5">
+            <input id="brut" type="number" inputmode="decimal" step="0.1" placeholder="Ex: 120.5">
           </div>
 
           <div class="col-12">
@@ -127,6 +127,78 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
           <div class="col-12">
             <button onclick="saveSafe()">ENREGISTRER</button>
           </div>
+        </div>
+      </div>
+
+      <!-- PAGE TRIE -->
+      <div id="pageTrie" style="display:none">
+        <h2>Trie (kg avec tare)</h2>
+
+        <div class="grid">
+          <div class="col-6">
+            <label>Catégorie</label>
+            <select id="trieCat">
+              <option value="PAM">PAM trié</option>
+              <option value="ASL">ASL trié</option>
+              <option value="PLASTIQUE_DUR">Plastique dur</option>
+              <option value="PLASTIQUE_MOU">Plastique mou</option>
+              <option value="ASL_AUTRE">ASL autre</option>
+              <option value="N_DIB">N-DIB</option>
+              <option value="NREP_ECOMAISON">NREP Ecomaison</option>
+              <option value="NREP_REFASHION">NREP Refashion</option>
+            </select>
+          </div>
+
+          <div class="col-3">
+            <label>Bac (tare)</label>
+            <select id="trieBac">
+              <option value="ABJ">ABJ (43kg)</option>
+              <option value="ASL">ASL (45kg)</option>
+            </select>
+          </div>
+
+          <div class="col-3">
+            <label>Nb bacs</label>
+            <input id="trieNb" type="number" inputmode="numeric" pattern="[0-9]*" min="1" value="1">
+          </div>
+
+          <div class="col-6">
+            <label>Brut (kg)</label>
+            <input id="trieBrut" type="number" inputmode="decimal" step="0.1" placeholder="Ex: 280.0">
+          </div>
+
+          <div class="col-6">
+            <div class="big">Net : <span id="trieNet">0</span> kg</div>
+          </div>
+
+          <div class="col-12" style="display:flex;gap:10px;flex-wrap:wrap">
+            <button onclick="saveTrieSafe()">ENREGISTRER TRIE</button>
+            <button class="smallBtn" onclick="syncTriePending()">⟳ SYNC TRIE (<span id="triePendingCount">0</span>)</button>
+            <button class="smallBtn" onclick="loadTrieData(); renderTrieAll();">🔄 Rafraîchir</button>
+          </div>
+        </div>
+
+        <hr>
+
+        <h3>Total par jour (toutes catégories)</h3>
+        <div class="tableWrap">
+          <table>
+            <thead><tr><th>Jour</th><th>Catégorie</th><th class="right">Total (kg)</th></tr></thead>
+            <tbody id="trieTotalsDay"></tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top:14px">Historique TRIE (date + heure)</h3>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date/Heure</th><th>Catégorie</th><th>Bac</th>
+                <th class="right">Nb</th><th class="right">Brut</th><th class="right">Tare</th><th class="right">Net</th><th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="trieHist"></tbody>
+          </table>
         </div>
       </div>
 
@@ -159,14 +231,14 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
           </div>
 
           <hr>
-          <h3>Admin – Historique</h3>
-          <button class="smallBtn danger" onclick="clearAll()">🧹 Vider tout l’historique</button>
+          <h3>Admin – Vider</h3>
+          <button class="smallBtn danger" onclick="clearAll()">🧹 Vider TOUT (pesees + trie)</button>
         </div>
 
         <hr>
 
         <!-- Récap -->
-        <h3>Récap du jour</h3>
+        <h3>Récap du jour (PESÉE)</h3>
         <div class="grid">
           <div class="col-4">
             <label>Date</label>
@@ -200,7 +272,7 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
 
         <hr>
 
-        <h3>En attente (hors-ligne)</h3>
+        <h3>En attente (PESÉE hors-ligne)</h3>
         <div class="tableWrap">
           <table>
             <thead>
@@ -212,7 +284,7 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
 
         <hr>
 
-        <h3>Historique (Supabase + Cache + En attente)</h3>
+        <h3>Historique PESÉE (mélangé : Supabase + Cache + En attente)</h3>
         <div class="tableWrap">
           <table>
             <thead>
@@ -226,140 +298,30 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
         </div>
 
         <hr>
-        <h2>Trie (historique)</h2>
 
-        <h3>PAM trié</h3>
-        <h4>Total par jour</h4>
+        <h2>Trie (dans Historique)</h2>
+
+        <h3>Total TRIE par jour</h3>
         <div class="tableWrap">
           <table>
-            <thead><tr><th>Jour</th><th class="right">Total</th></tr></thead>
-            <tbody id="pamTrieTotalsHist"></tbody>
-          </table>
-        </div>
-        <h4 style="margin-top:14px">Détails (date + heure)</h4>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Date/Heure</th><th class="right">+ / -</th><th>Source</th></tr></thead>
-            <tbody id="pamTrieHistHist"></tbody>
+            <thead><tr><th>Jour</th><th>Catégorie</th><th class="right">Total (kg)</th></tr></thead>
+            <tbody id="trieTotalsDayHist"></tbody>
           </table>
         </div>
 
-        <hr>
-
-        <h3>ASL trié</h3>
-        <h4>Total par jour</h4>
+        <h3 style="margin-top:14px">Détails TRIE (date + heure)</h3>
         <div class="tableWrap">
           <table>
-            <thead><tr><th>Jour</th><th class="right">Total</th></tr></thead>
-            <tbody id="aslTrieTotalsHist"></tbody>
-          </table>
-        </div>
-        <h4 style="margin-top:14px">Détails (date + heure)</h4>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Date/Heure</th><th class="right">+ / -</th><th>Source</th></tr></thead>
-            <tbody id="aslTrieHistHist"></tbody>
+            <thead>
+              <tr>
+                <th>Date/Heure</th><th>Catégorie</th><th>Bac</th>
+                <th class="right">Nb</th><th class="right">Brut</th><th class="right">Tare</th><th class="right">Net</th><th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="trieHistHist"></tbody>
           </table>
         </div>
 
-        <hr>
-
-        <h3>Trie (kg)</h3>
-        <h4>Total net (kg) par jour</h4>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Jour</th><th>Catégorie</th><th class="right">Total net (kg)</th></tr></thead>
-            <tbody id="trieKgTotalsHist"></tbody>
-          </table>
-        </div>
-        <h4 style="margin-top:14px">Détails (date + heure)</h4>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Date/Heure</th><th>Catégorie</th><th>ABJ/ASL</th><th class="right">Nb</th><th class="right">Brut</th><th class="right">Tare</th><th class="right">Net</th><th>Source</th></tr></thead>
-            <tbody id="trieKgHistHist"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- PAGE TRIE -->
-      <div id="pageTrie" style="display:none">
-        <h2>Trie</h2>
-
-        <h3>Trie (PAM)</h3>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-          <button onclick="addPamTrie(+1)">+1 PAM trié</button>
-          <button class="danger" onclick="addPamTrie(-1)">-1 PAM trié</button>
-          <button class="smallBtn" onclick="syncPamTriePending()">⟳ SYNC PAM (<span id="pamTriePendingCount">0</span>)</button>
-          <button class="smallBtn" onclick="loadTrieAll()">🔄 Rafraîchir</button>
-        </div>
-
-        <h4>Total PAM trié par jour</h4>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Jour</th><th class="right">Total</th></tr></thead>
-            <tbody id="pamTrieTotals"></tbody>
-          </table>
-        </div>
-
-        <h4 style="margin-top:14px">Historique PAM trié (date + heure)</h4>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Date/Heure</th><th class="right">+ / -</th><th>Source</th></tr></thead>
-            <tbody id="pamTrieHist"></tbody>
-          </table>
-        </div>
-
-        <hr>
-
-        <h3>Trie (ASL)</h3>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-          <button onclick="addAslTrie(+1)">+1 ASL trié</button>
-          <button class="danger" onclick="addAslTrie(-1)">-1 ASL trié</button>
-          <button class="smallBtn" onclick="syncAslTriePending()">⟳ SYNC ASL (<span id="aslTriePendingCount">0</span>)</button>
-          <button class="smallBtn" onclick="loadTrieAll()">🔄 Rafraîchir</button>
-        </div>
-
-        <h4>Total ASL trié par jour</h4>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Jour</th><th class="right">Total</th></tr></thead>
-            <tbody id="aslTrieTotals"></tbody>
-          </table>
-        </div>
-
-        <h4 style="margin-top:14px">Historique ASL trié (date + heure)</h4>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Date/Heure</th><th class="right">+ / -</th><th>Source</th></tr></thead>
-            <tbody id="aslTrieHist"></tbody>
-          </table>
-        </div>
-
-        <hr>
-
-        <h3>Trie (kg) – Plastiques / NREP</h3>
-        <div id="trieKgUI" style="display:grid;gap:10px"></div>
-
-        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
-          <button class="smallBtn" onclick="syncTrieKgPending()">⟳ SYNC KG (<span id="trieKgPendingCount">0</span>)</button>
-          <button class="smallBtn" onclick="loadTrieAll()">🔄 Rafraîchir</button>
-        </div>
-
-        <h4 style="margin-top:14px">Total net (kg) par jour</h4>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Jour</th><th>Catégorie</th><th class="right">Total net (kg)</th></tr></thead>
-            <tbody id="trieKgTotals"></tbody>
-          </table>
-        </div>
-
-        <h4 style="margin-top:14px">Historique (date + heure)</h4>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Date/Heure</th><th>Catégorie</th><th>ABJ/ASL</th><th class="right">Nb</th><th class="right">Brut</th><th class="right">Tare</th><th class="right">Net</th><th>Source</th></tr></thead>
-            <tbody id="trieKgHist"></tbody>
-          </table>
-        </div>
       </div>
 
     </div>
@@ -367,62 +329,82 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
 </div>
 
 <script>
+/* ✅ SUPABASE */
 const supabase = window.supabase.createClient(
   "https://dzfokswsmkvhjhziqakj.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0"
 );
 
+/* TARES + TYPES (PESÉE) */
 const T = { PAM:59, ASL:45, ABJ:43, FRIGO:0, HF:0 };
 const A = { PAM:"PAM", ASL:"ASL", ABJ:"ABJ", FRIGO:"F", HF:"HF" };
 const TYPES = ["PAM","ASL","ABJ","F","HF"];
 
-const PENDING_KEY = "pesees_pending_v4";
-const HISTORY_CACHE_KEY = "pesees_history_cache_v1";
-const CACHE_META_KEY = "pesees_history_cache_meta_v1";
+/* TARES (TRIE) */
+const TRIE_TARE = { ABJ:43, ASL:45 };
+const TRIE_LABEL = {
+  PAM: "PAM trié",
+  ASL: "ASL trié",
+  PLASTIQUE_DUR: "Plastique dur",
+  PLASTIQUE_MOU: "Plastique mou",
+  ASL_AUTRE: "ASL autre",
+  N_DIB: "N-DIB",
+  NREP_ECOMAISON: "NREP Ecomaison",
+  NREP_REFASHION: "NREP Refashion"
+};
 
 const $ = (id)=>document.getElementById(id);
 const r1 = (x)=>Math.round(x*10)/10;
 const num = (x)=>{ const v=Number(String(x).replace(",", ".")); return Number.isFinite(v)?v:0; };
 
-let currentUser=null;
-let isAdminUser=false;
-let lastHistorySource="LIVE";
+let currentUser = null;
+let isAdminUser = false;
+let lastHistorySource = "LIVE";
+let lastTrieSource = "LIVE";
 
+/* OFFLINE KEYS (PESÉE) */
+const PENDING_KEY = "pesees_pending_v4";
+const HISTORY_CACHE_KEY = "pesees_history_cache_v1";
+const CACHE_META_KEY = "pesees_history_cache_meta_v1";
+
+/* OFFLINE KEYS (TRIE) */
+const TRIE_PENDING_KEY = "trie_pending_v1";
+const TRIE_CACHE_KEY   = "trie_cache_v1";
+const TRIE_META_KEY    = "trie_cache_meta_v1";
+
+/* UI */
 function setStatus(msg){ $("status").textContent = msg || ""; }
 function setLoginMsg(msg){ $("loginMsg").textContent = msg || ""; }
-
 function refreshNetwork(){
   $("badgeNet").textContent = "Réseau : " + (navigator.onLine ? "OK" : "HORS-LIGNE");
-}
-function getHistoryMeta(){
-  try{ return JSON.parse(localStorage.getItem(CACHE_META_KEY) || "null"); }catch{ return null; }
 }
 function setStoreBadge(){
   const meta = getHistoryMeta();
   const info = meta?.updatedAt ? new Date(meta.updatedAt).toLocaleString() : "—";
   $("badgeStore").textContent = `Données : ${lastHistorySource} (${info})`;
 }
-
 window.addEventListener("online", ()=>{
   refreshNetwork();
   syncPending();
-  syncPamTriePending();
-  syncAslTriePending();
-  syncTrieKgPending();
+  syncTriePending();
 });
 window.addEventListener("offline", refreshNetwork);
 
+/* Admin UI */
 function setAdminUI(){
   $("badgeAdmin").textContent = isAdminUser ? "ADMIN" : "Utilisateur";
   $("adminPanel").style.display = isAdminUser ? "block" : "none";
   $("thAdmin").style.display = isAdminUser ? "table-cell" : "none";
 }
+
+/* Admin check */
 async function checkAdmin(){
   const { data, error } = await supabase.rpc("is_admin");
   if(error) throw error;
   return !!data;
 }
 
+/* Pages */
 function show(p){
   $("pagePesee").style.display = (p==="pesee") ? "block" : "none";
   $("pageHist").style.display  = (p==="hist")  ? "block" : "none";
@@ -435,16 +417,18 @@ function show(p){
     loadData();
     renderPending();
     renderMixedHistory();
-    loadTrieAll();
+    loadTrieData();
+    renderTrieAll();
   }
   if(p==="trie"){
-    loadTrieAll();
+    loadTrieData();
+    renderTrieAll();
   }
 }
 
+/* Calcul net (PESÉE) */
 function calc(){
-  const nb = Math.max(1, Math.floor(num($("nb").value)));
-  $("nb").value = nb;
+  const nb = Math.max(1, parseInt($("nb").value||"1",10));
   const brut = num($("brut").value);
   const tare = (T[$("type").value] || 0) * nb;
   const net = Math.max(0, brut - tare);
@@ -456,14 +440,29 @@ function calc(){
   $("brut").addEventListener(ev, calc);
 });
 
-function getPending(){ try{ return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); }catch{ return []; } }
+/* Calcul net (TRIE) */
+function calcTrie(){
+  const nb = Math.max(1, parseInt($("trieNb").value||"1",10));
+  const brut = num($("trieBrut").value);
+  const tare = (TRIE_TARE[$("trieBac").value] || 0) * nb;
+  const net = Math.max(0, brut - tare);
+  $("trieNet").textContent = r1(net);
+}
+["input","change"].forEach(ev=>{
+  $("trieCat").addEventListener(ev, calcTrie);
+  $("trieBac").addEventListener(ev, calcTrie);
+  $("trieNb").addEventListener(ev, calcTrie);
+  $("trieBrut").addEventListener(ev, calcTrie);
+});
+
+/* ---- OFFLINE PENDING (PESÉE) ---- */
+function getPending(){ try{ return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); } catch{ return []; } }
 function setPending(arr){
   localStorage.setItem(PENDING_KEY, JSON.stringify(arr));
   $("pendingCount").textContent = String(arr.length);
 }
 function addPending(row){ const arr=getPending(); arr.unshift(row); setPending(arr); }
 function removePending(client_id){ setPending(getPending().filter(x=>x.client_id !== client_id)); }
-
 function renderPending(){
   const arr = getPending();
   $("pendingCount").textContent = String(arr.length);
@@ -495,12 +494,14 @@ function deletePending(client_id){
   buildRecap();
 }
 
-function getHistoryCache(){ try{ return JSON.parse(localStorage.getItem(HISTORY_CACHE_KEY) || "[]"); }catch{ return []; } }
+/* ---- HISTORY CACHE (PESÉE) ---- */
+function getHistoryCache(){ try{ return JSON.parse(localStorage.getItem(HISTORY_CACHE_KEY) || "[]"); } catch{ return []; } }
 function setHistoryCache(rows, source){
   localStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(rows || []));
   localStorage.setItem(CACHE_META_KEY, JSON.stringify({ updatedAt: Date.now(), source: source || "LIVE" }));
 }
-
+function getHistoryMeta(){ try{ return JSON.parse(localStorage.getItem(CACHE_META_KEY) || "null"); } catch{ return null; } }
+/* ---- MIXED RENDER (PESÉE) ---- */
 function renderMixedHistory(){
   const pending = getPending().map(p=>({
     id: null,
@@ -519,6 +520,7 @@ function renderMixedHistory(){
   }));
 
   const all = [...pending, ...cached].sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
+
   const tb = $("histMix");
   tb.innerHTML = "";
 
@@ -528,9 +530,14 @@ function renderMixedHistory(){
   }
 
   all.forEach(r=>{
-    const src = (r._source==="ATTENTE") ? "ATTENTE" : (lastHistorySource==="LIVE" ? "LIVE" : "CACHE");
+    const srcTag =
+      r._source==="ATTENTE" ? "ATTENTE" :
+      (lastHistorySource==="LIVE" ? "LIVE" : "CACHE");
+
     const adminCell = isAdminUser
-      ? (r._source==="ATTENTE" ? `<td class="muted">—</td>` : `<td><button class="smallBtn danger" onclick="deleteRow(${r.id})">Suppr</button></td>`)
+      ? (r._source==="ATTENTE"
+          ? `<td class="muted">—</td>`
+          : `<td><button class="smallBtn danger" onclick="deleteRow(${r.id})">Suppr</button></td>`)
       : "";
 
     tb.innerHTML += `
@@ -540,11 +547,13 @@ function renderMixedHistory(){
         <td>${r.type}</td>
         <td class="right">${r.nb}</td>
         <td class="right">${r.net}</td>
-        <td>${src}</td>
+        <td>${srcTag}</td>
         ${adminCell}
       </tr>`;
   });
 }
+
+/* ✅ SYNC pending -> Supabase (PESÉE) */
 async function syncPending(){
   const arr = getPending();
   $("pendingCount").textContent = String(arr.length);
@@ -557,18 +566,30 @@ async function syncPending(){
   const toSend = [...arr].reverse();
   for(const row of toSend){
     try{
-      const payload = { client_id: row.client_id, ville: row.ville, type: row.type, nb: row.nb, brut: row.brut, tare: row.tare, net: row.net };
+      const payload = {
+        client_id: row.client_id,
+        ville: row.ville,
+        type: row.type,
+        nb: row.nb,
+        brut: row.brut,
+        tare: row.tare,
+        net: row.net
+      };
       const { error } = await supabase.from("pesees").upsert(payload, { onConflict: "client_id" });
       if(error) throw error;
       removePending(row.client_id);
-    }catch{ break; }
+    }catch{
+      break;
+    }
   }
+
   renderPending();
   await loadData();
   await buildRecap();
   renderMixedHistory();
 }
 
+/* Login / logout */
 async function login(){
   try{
     const email = $("email").value.trim();
@@ -589,23 +610,19 @@ async function login(){
     $("loginScreen").style.display = "none";
     $("app").style.display = "block";
 
+    refreshNetwork();
+
     await loadCities();
     await loadData();
 
-    await loadPamTrieData();
-    await loadAslTrieData();
-    await loadTrieKgData();
-    loadTrieAll();
+    await loadTrieData();
+    renderTrieAll();
 
     if(!$("recapDate").value) $("recapDate").value = ymdToday();
-
-    refreshNetwork();
-    setStoreBadge();
+    setLoginMsg("");
 
     syncPending();
-    syncPamTriePending();
-    syncAslTriePending();
-    syncTrieKgPending();
+    syncTriePending();
 
     show("pesee");
   }catch(e){
@@ -622,6 +639,7 @@ async function logout(){
   }
 }
 
+/* Villes */
 async function loadCities(){
   try{
     const { data, error } = await supabase.from("villes").select("id, nom").order("nom", { ascending:true }).limit(500);
@@ -684,10 +702,11 @@ async function deleteCity(id, nom){
   }
 }
 
+/* ✅ Enregistrer PESÉE : upsert sinon pending */
 async function saveSafe(){
   try{
     calc();
-    const nb = Math.max(1, Math.floor(num($("nb").value)));
+    const nb = Math.max(1, parseInt($("nb").value||"1",10));
     const brut = num($("brut").value);
     const tare = (T[$("type").value] || 0) * nb;
     const net = Math.max(0, brut - tare);
@@ -715,26 +734,24 @@ async function saveSafe(){
     if(error) throw error;
 
     $("brut").value = "";
-    $("nb").value = "1";
     calc();
 
     await loadData();
     await buildRecap();
     renderMixedHistory();
     show("pesee");
-  }catch(e){
-    const nb = Math.max(1, Math.floor(num($("nb").value)));
+  }catch{
+    const nb = Math.max(1, parseInt($("nb").value||"1",10));
     const brut = num($("brut").value);
     const tare = (T[$("type").value] || 0) * nb;
     const net = Math.max(0, brut - tare);
     const ville = ($("ville").value || "").trim();
     const type = A[$("type").value];
-
     const client_id = "p_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+
     addPending({ client_id, local_created_at: Date.now(), ville, type, nb, brut:r1(brut), tare:r1(tare), net:r1(net) });
 
     $("brut").value = "";
-    $("nb").value = "1";
     calc();
 
     renderPending();
@@ -744,6 +761,7 @@ async function saveSafe(){
   }
 }
 
+/* Historique Supabase -> cache (PESÉE) */
 async function loadData(){
   try{
     const { data, error } = await supabase
@@ -751,50 +769,50 @@ async function loadData(){
       .select("id, created_at, ville, type, nb, net, client_id")
       .order("created_at", { ascending:false })
       .limit(1200);
-
     if(error) throw error;
 
     lastHistorySource = "LIVE";
     setHistoryCache(data || [], "LIVE");
     setStoreBadge();
     renderMixedHistory();
-  }catch(e){
+  }catch{
     lastHistorySource = "CACHE";
     setStoreBadge();
     renderMixedHistory();
   }
 }
 
+/* Admin delete / clear (PESÉE) */
 async function deleteRow(id){
   if(!isAdminUser) return alert("Admin uniquement");
   if(!confirm("Supprimer cette ligne ?")) return;
-  try{
-    const { error } = await supabase.from("pesees").delete().eq("id", id);
-    if(error) throw error;
-    await loadData();
-    await buildRecap();
-    renderMixedHistory();
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
-  }
+  const { error } = await supabase.from("pesees").delete().eq("id", id);
+  if(error) return alert("Erreur: " + error.message);
+  await loadData();
+  await buildRecap();
+  renderMixedHistory();
 }
 
-/* ⚠️ IMPORTANT : vider “tout” nécessite une fonction SQL côté Supabase.
-   Ici on supprime ce qu’on peut via delete() simple (peut être limité par RLS). */
+/* ✅ Vider TOUT (pesees + trie_entries) => RPC (voir SQL) */
 async function clearAll(){
   if(!isAdminUser) return alert("Admin uniquement");
-  if(!confirm("⚠️ Vider TOUT l’historique ?")) return;
-  try{
-    const { error } = await supabase.from("pesees").delete().neq("id", -1);
-    if(error) throw error;
-    await loadData();
-    await buildRecap();
-    renderMixedHistory();
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
-  }
+  if(!confirm("⚠️ Vider TOUT l’historique (PESÉE + TRIE) ?")) return;
+
+  const { error } = await supabase.rpc("clear_all_history");
+  if(error) return alert("Erreur: " + error.message);
+
+  // refresh tout
+  setPending([]);
+  setTriePending([]);
+  await loadData();
+  await loadTrieData();
+  renderPending();
+  renderMixedHistory();
+  renderTrieAll();
+  await buildRecap();
 }
 
+/* --- RÉCAP PESÉE --- */
 function ymdToday(){
   const d=new Date();
   const y=d.getFullYear();
@@ -803,7 +821,6 @@ function ymdToday(){
   return `${y}-${m}-${da}`;
 }
 function recapToday(){ $("recapDate").value = ymdToday(); buildRecap(); }
-
 function dayRangeLocal(ymd){
   const [y,m,d]=ymd.split("-").map(Number);
   const start=new Date(y,m-1,d,0,0,0,0).getTime();
@@ -857,7 +874,6 @@ function renderRecapTables(totalAll, byCity){
       </tr>`;
   }).join("") : `<tr><td colspan="7" class="muted">Aucune donnée</td></tr>`;
 }
-
 async function buildRecap(){
   try{
     const date = $("recapDate").value || ymdToday();
@@ -894,7 +910,7 @@ async function buildRecap(){
 }
 
 /* =========================
-   TRIE PAM / ASL (+1 / -1)
+   ✅ TRIE (kg avec tare) OFFLINE + SYNC
 ========================= */
 function ymdLocalFromISO(iso){
   const d=new Date(iso);
@@ -904,376 +920,245 @@ function ymdLocalFromISO(iso){
   return `${y}-${m}-${da}`;
 }
 
-/* PAM */
-const PAM_TRIE_PENDING_KEY="pam_trie_pending_v1";
-const PAM_TRIE_CACHE_KEY="pam_trie_cache_v1";
-let lastPamTrieSource="LIVE";
+/* Pending / cache TRIE */
+function getTriePending(){ try{ return JSON.parse(localStorage.getItem(TRIE_PENDING_KEY)||"[]"); }catch{ return []; } }
+function setTriePending(arr){
+  localStorage.setItem(TRIE_PENDING_KEY, JSON.stringify(arr));
+  $("triePendingCount").textContent = String(arr.length);
+}
+function addTriePending(row){ const arr=getTriePending(); arr.unshift(row); setTriePending(arr); }
+function removeTriePending(client_id){ setTriePending(getTriePending().filter(x=>x.client_id!==client_id)); }
 
-function getPamTriePending(){ try{return JSON.parse(localStorage.getItem(PAM_TRIE_PENDING_KEY)||"[]")}catch{return[]} }
-function setPamTriePending(arr){ localStorage.setItem(PAM_TRIE_PENDING_KEY,JSON.stringify(arr)); $("pamTriePendingCount").textContent=String(arr.length); }
-function addPamTriePending(row){ const a=getPamTriePending(); a.unshift(row); setPamTriePending(a); }
-function removePamTriePending(client_id){ setPamTriePending(getPamTriePending().filter(x=>x.client_id!==client_id)); }
-function getPamTrieCache(){ try{return JSON.parse(localStorage.getItem(PAM_TRIE_CACHE_KEY)||"[]")}catch{return[]} }
-function setPamTrieCache(rows, source){ localStorage.setItem(PAM_TRIE_CACHE_KEY,JSON.stringify(rows||[])); lastPamTrieSource=source||"LIVE"; }
+function getTrieCache(){ try{ return JSON.parse(localStorage.getItem(TRIE_CACHE_KEY)||"[]"); }catch{ return []; } }
+function setTrieCache(rows, source){
+  localStorage.setItem(TRIE_CACHE_KEY, JSON.stringify(rows||[]));
+  localStorage.setItem(TRIE_META_KEY, JSON.stringify({ updatedAt: Date.now(), source: source||"LIVE" }));
+}
+function getTrieMeta(){ try{ return JSON.parse(localStorage.getItem(TRIE_META_KEY)||"null"); }catch{ return null; } }
 
-async function addPamTrie(delta){
-  const client_id="t_pam_"+Date.now()+"_"+Math.random().toString(16).slice(2);
+/* Save TRIE */
+async function saveTrieSafe(){
   try{
+    calcTrie();
+    const category = $("trieCat").value;
+    const bac = $("trieBac").value;
+    const nb = Math.max(1, parseInt($("trieNb").value||"1",10));
+    const brut = num($("trieBrut").value);
+    const tare = (TRIE_TARE[bac] || 0) * nb;
+    const net = Math.max(0, brut - tare);
+
+    if(brut<=0) return alert("Entre un poids brut.");
+    if(brut<tare) return alert("Brut inférieur à la tare.");
+
+    const ok = confirm(
+      "Confirmer TRIE ?\n\n" +
+      "Catégorie: " + (TRIE_LABEL[category] || category) + "\n" +
+      "Bac: " + bac + " | Nb: " + nb + "\n" +
+      "Brut: " + r1(brut) + " kg\n" +
+      "Tare: " + r1(tare) + " kg\n" +
+      "NET:  " + r1(net) + " kg"
+    );
+    if(!ok) return;
+
+    const client_id="t_"+Date.now()+"_"+Math.random().toString(16).slice(2);
+
     const { data: u } = await supabase.auth.getUser();
     if(!u?.user) return alert("Connecte-toi.");
+
     if(!navigator.onLine) throw new Error("offline");
-    const payload={ client_id, delta, user_email:u.user.email||null };
-    const { error } = await supabase.from("pam_trie").upsert(payload,{ onConflict:"client_id" });
+
+    const payload = {
+      client_id,
+      category,
+      bac,
+      nb,
+      brut: r1(brut),
+      tare: r1(tare),
+      net: r1(net),
+      user_email: u.user.email || null
+    };
+
+    const { error } = await supabase.from("tri_entries").upsert(payload, { onConflict:"client_id" });
     if(error) throw error;
-    await loadPamTrieData();
-    loadTrieAll();
+
+    $("trieBrut").value = "";
+    $("trieNb").value = "1";
+    calcTrie();
+
+    await loadTrieData();
+    renderTrieAll();
+    show("trie");
   }catch{
-    addPamTriePending({ client_id, local_created_at:Date.now(), delta });
-    loadTrieAll();
+    const category = $("trieCat").value;
+    const bac = $("trieBac").value;
+    const nb = Math.max(1, parseInt($("trieNb").value||"1",10));
+    const brut = num($("trieBrut").value);
+    const tare = (TRIE_TARE[bac] || 0) * nb;
+    const net = Math.max(0, brut - tare);
+    const client_id="t_"+Date.now()+"_"+Math.random().toString(16).slice(2);
+
+    addTriePending({
+      client_id,
+      local_created_at: Date.now(),
+      category, bac, nb,
+      brut: r1(brut),
+      tare: r1(tare),
+      net: r1(net)
+    });
+
+    $("trieBrut").value = "";
+    $("trieNb").value = "1";
+    calcTrie();
+
+    renderTrieAll();
+    show("trie");
   }
 }
 
-async function syncPamTriePending(){
-  const arr=getPamTriePending();
-  $("pamTriePendingCount").textContent=String(arr.length);
-  if(!arr.length || !navigator.onLine) return;
+/* Sync TRIE pending */
+async function syncTriePending(){
+  const arr=getTriePending();
+  $("triePendingCount").textContent = String(arr.length);
+  if(!arr.length) return;
+  if(!navigator.onLine) return;
 
   const { data: u } = await supabase.auth.getUser();
   if(!u?.user) return;
 
-  for(const row of [...arr].reverse()){
+  const toSend=[...arr].reverse();
+  for(const row of toSend){
     try{
-      const payload={ client_id:row.client_id, delta:row.delta, user_email:u.user.email||null };
-      const { error } = await supabase.from("pam_trie").upsert(payload,{ onConflict:"client_id" });
+      const payload = {
+        client_id: row.client_id,
+        category: row.category,
+        bac: row.bac,
+        nb: row.nb,
+        brut: row.brut,
+        tare: row.tare,
+        net: row.net,
+        user_email: u.user.email || null
+      };
+      const { error } = await supabase.from("tri_entries").upsert(payload,{ onConflict:"client_id" });
       if(error) throw error;
-      removePamTriePending(row.client_id);
-    }catch{ break; }
+      removeTriePending(row.client_id);
+    }catch{
+      break;
+    }
   }
-  await loadPamTrieData();
-  loadTrieAll();
+
+  await loadTrieData();
+  renderTrieAll();
 }
 
-async function loadPamTrieData(){
-  try{
-    const { data, error } = await supabase.from("pam_trie").select("created_at,delta,client_id").order("created_at",{ascending:false}).limit(3000);
-    if(error) throw error;
-    setPamTrieCache(data||[], "LIVE");
-  }catch{
-    lastPamTrieSource="CACHE";
-  }
-}
-
-function buildPamTrieMerged(){
-  const pending=getPamTriePending().map(p=>({ created_at:new Date(p.local_created_at).toISOString(), delta:p.delta, _source:"ATTENTE" }));
-  const cached=getPamTrieCache().map(r=>({ ...r, _source:(lastPamTrieSource==="LIVE"?"LIVE":"CACHE") }));
-  const all=[...pending,...cached].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-  const totals={};
-  for(const r of all){ const day=ymdLocalFromISO(r.created_at); totals[day]=(totals[day]||0)+Number(r.delta||0); }
-  const totalsArr=Object.keys(totals).sort((a,b)=>b.localeCompare(a)).map(day=>({day,total:totals[day]}));
-  return { all, totalsArr };
-}
-function renderPamTrieTables(totalsId, histId){
-  const { all, totalsArr } = buildPamTrieMerged();
-  const tbT=$(totalsId); tbT.innerHTML = totalsArr.length
-    ? totalsArr.map(r=>`<tr><td>${r.day}</td><td class="right"><b>${r.total}</b></td></tr>`).join("")
-    : `<tr><td colspan="2" class="muted">Aucune donnée</td></tr>`;
-  const tbH=$(histId); tbH.innerHTML = all.length
-    ? all.slice(0,500).map(r=>{
-        const dt=new Date(r.created_at).toLocaleString();
-        const v=(r.delta>0?("+"+r.delta):String(r.delta));
-        return `<tr><td>${dt}</td><td class="right"><b>${v}</b></td><td>${r._source}</td></tr>`;
-      }).join("")
-    : `<tr><td colspan="3" class="muted">Aucune donnée</td></tr>`;
-}
-
-/* ASL */
-const ASL_TRIE_PENDING_KEY="asl_trie_pending_v1";
-const ASL_TRIE_CACHE_KEY="asl_trie_cache_v1";
-let lastAslTrieSource="LIVE";
-
-function getAslTriePending(){ try{return JSON.parse(localStorage.getItem(ASL_TRIE_PENDING_KEY)||"[]")}catch{return[]} }
-function setAslTriePending(arr){ localStorage.setItem(ASL_TRIE_PENDING_KEY,JSON.stringify(arr)); $("aslTriePendingCount").textContent=String(arr.length); }
-function addAslTriePending(row){ const a=getAslTriePending(); a.unshift(row); setAslTriePending(a); }
-function removeAslTriePending(client_id){ setAslTriePending(getAslTriePending().filter(x=>x.client_id!==client_id)); }
-function getAslTrieCache(){ try{return JSON.parse(localStorage.getItem(ASL_TRIE_CACHE_KEY)||"[]")}catch{return[]} }
-function setAslTrieCache(rows, source){ localStorage.setItem(ASL_TRIE_CACHE_KEY,JSON.stringify(rows||[])); lastAslTrieSource=source||"LIVE"; }
-
-async function addAslTrie(delta){
-  const client_id="t_asl_"+Date.now()+"_"+Math.random().toString(16).slice(2);
-  try{
-    const { data: u } = await supabase.auth.getUser();
-    if(!u?.user) return alert("Connecte-toi.");
-    if(!navigator.onLine) throw new Error("offline");
-    const payload={ client_id, delta, user_email:u.user.email||null };
-    const { error } = await supabase.from("asl_trie").upsert(payload,{ onConflict:"client_id" });
-    if(error) throw error;
-    await loadAslTrieData();
-    loadTrieAll();
-  }catch{
-    addAslTriePending({ client_id, local_created_at:Date.now(), delta });
-    loadTrieAll();
-  }
-}
-
-async function syncAslTriePending(){
-  const arr=getAslTriePending();
-  $("aslTriePendingCount").textContent=String(arr.length);
-  if(!arr.length || !navigator.onLine) return;
-
-  const { data: u } = await supabase.auth.getUser();
-  if(!u?.user) return;
-
-  for(const row of [...arr].reverse()){
-    try{
-      const payload={ client_id:row.client_id, delta:row.delta, user_email:u.user.email||null };
-      const { error } = await supabase.from("asl_trie").upsert(payload,{ onConflict:"client_id" });
-      if(error) throw error;
-      removeAslTriePending(row.client_id);
-    }catch{ break; }
-  }
-  await loadAslTrieData();
-  loadTrieAll();
-}
-
-async function loadAslTrieData(){
-  try{
-    const { data, error } = await supabase.from("asl_trie").select("created_at,delta,client_id").order("created_at",{ascending:false}).limit(3000);
-    if(error) throw error;
-    setAslTrieCache(data||[], "LIVE");
-  }catch{
-    lastAslTrieSource="CACHE";
-  }
-}
-
-function buildAslTrieMerged(){
-  const pending=getAslTriePending().map(p=>({ created_at:new Date(p.local_created_at).toISOString(), delta:p.delta, _source:"ATTENTE" }));
-  const cached=getAslTrieCache().map(r=>({ ...r, _source:(lastAslTrieSource==="LIVE"?"LIVE":"CACHE") }));
-  const all=[...pending,...cached].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-  const totals={};
-  for(const r of all){ const day=ymdLocalFromISO(r.created_at); totals[day]=(totals[day]||0)+Number(r.delta||0); }
-  const totalsArr=Object.keys(totals).sort((a,b)=>b.localeCompare(a)).map(day=>({day,total:totals[day]}));
-  return { all, totalsArr };
-}
-function renderAslTrieTables(totalsId, histId){
-  const { all, totalsArr } = buildAslTrieMerged();
-  const tbT=$(totalsId); tbT.innerHTML = totalsArr.length
-    ? totalsArr.map(r=>`<tr><td>${r.day}</td><td class="right"><b>${r.total}</b></td></tr>`).join("")
-    : `<tr><td colspan="2" class="muted">Aucune donnée</td></tr>`;
-  const tbH=$(histId); tbH.innerHTML = all.length
-    ? all.slice(0,500).map(r=>{
-        const dt=new Date(r.created_at).toLocaleString();
-        const v=(r.delta>0?("+"+r.delta):String(r.delta));
-        return `<tr><td>${dt}</td><td class="right"><b>${v}</b></td><td>${r._source}</td></tr>`;
-      }).join("")
-    : `<tr><td colspan="3" class="muted">Aucune donnée</td></tr>`;
-}
-
-/* =========================
-   TRIE KG (avec tare ABJ/ASL)
-========================= */
-const TRIE_KG_CATS = [
-  "Plastique dur",
-  "Plastique mou",
-  "ASL autre",
-  "N-DIB",
-  "NREP Ecomaison",
-  "NREP Refashion"
-];
-const TRIE_KG_TARE = { ABJ:43, ASL:45 };
-
-const TRIE_KG_PENDING_KEY="trie_kg_pending_v1";
-const TRIE_KG_CACHE_KEY="trie_kg_cache_v1";
-let lastTrieKgSource="LIVE";
-
-function getTrieKgPending(){ try{return JSON.parse(localStorage.getItem(TRIE_KG_PENDING_KEY)||"[]")}catch{return[]} }
-function setTrieKgPending(arr){ localStorage.setItem(TRIE_KG_PENDING_KEY,JSON.stringify(arr)); $("trieKgPendingCount").textContent=String(arr.length); }
-function addTrieKgPending(row){ const a=getTrieKgPending(); a.unshift(row); setTrieKgPending(a); }
-function removeTrieKgPending(client_id){ setTrieKgPending(getTrieKgPending().filter(x=>x.client_id!==client_id)); }
-function getTrieKgCache(){ try{return JSON.parse(localStorage.getItem(TRIE_KG_CACHE_KEY)||"[]")}catch{return[]} }
-function setTrieKgCache(rows, source){ localStorage.setItem(TRIE_KG_CACHE_KEY,JSON.stringify(rows||[])); lastTrieKgSource=source||"LIVE"; }
-
-function buildTrieKgUI(){
-  const host = $("trieKgUI");
-  if(!host) return;
-  host.innerHTML = TRIE_KG_CATS.map((c,i)=>`
-    <div class="card" style="padding:12px">
-      <div style="font-weight:900;margin-bottom:8px">${c}</div>
-      <div class="grid">
-        <div class="col-3">
-          <label>Bac</label>
-          <select id="kg_bac_${i}">
-            <option value="ABJ">ABJ</option>
-            <option value="ASL">ASL</option>
-          </select>
-        </div>
-        <div class="col-3">
-          <label>Nb bacs</label>
-          <input id="kg_nb_${i}" type="number" min="1" step="1" value="1" inputmode="numeric">
-        </div>
-        <div class="col-3">
-          <label>Brut (kg)</label>
-          <input id="kg_brut_${i}" type="number" step="0.1" inputmode="decimal" placeholder="Ex: 210.5">
-        </div>
-        <div class="col-3" style="display:flex;align-items:end">
-          <button onclick="saveTrieKg(${i})" style="width:100%">ENREGISTRER</button>
-        </div>
-      </div>
-    </div>
-  `).join("");
-}
-
-function computeTrieKg(i){
-  const cat = TRIE_KG_CATS[i];
-  const bac = ($("kg_bac_"+i)?.value || "ABJ");
-  const nb  = Math.max(1, Math.floor(num($("kg_nb_"+i)?.value)));
-  if($("kg_nb_"+i)) $("kg_nb_"+i.value = nb;
-  const brut = num($("kg_brut_"+i)?.value);
-  const tare = (TRIE_KG_TARE[bac]||0) * nb;
-  const net  = Math.max(0, brut - tare);
-  return { cat, bac, nb, brut:r1(brut), tare:r1(tare), net:r1(net) };
-}
-
-async function saveTrieKg(i){
-  const client_id="kg_"+Date.now()+"_"+Math.random().toString(16).slice(2);
-  const row = computeTrieKg(i);
-  if(row.brut<=0) return alert("Entre un brut.");
-  if(row.brut<row.tare) return alert("Brut < tare.");
-
-  try{
-    const { data: u } = await supabase.auth.getUser();
-    if(!u?.user) return alert("Connecte-toi.");
-    if(!navigator.onLine) throw new Error("offline");
-
-    const payload = { client_id, category:row.cat, bac:row.bac, nb:row.nb, brut:row.brut, tare:row.tare, net:row.net, user_email:u.user.email||null };
-    const { error } = await supabase.from("trie_kg").upsert(payload,{ onConflict:"client_id" });
-    if(error) throw error;
-
-    if($("kg_brut_"+i)) $("kg_brut_"+i.value="";
-    if($("kg_nb_"+i)) $("kg_nb_"+i.value="1";
-
-    await loadTrieKgData();
-    loadTrieAll();
-  }catch{
-    addTrieKgPending({ client_id, local_created_at:Date.now(), ...row });
-    if($("kg_brut_"+i)) $("kg_brut_"+i.value="";
-    if($("kg_nb_"+i)) $("kg_nb_"+i.value="1";
-    loadTrieAll();
-  }
-}
-
-async function syncTrieKgPending(){
-  const arr=getTrieKgPending();
-  $("trieKgPendingCount").textContent=String(arr.length);
-  if(!arr.length || !navigator.onLine) return;
-
-  const { data: u } = await supabase.auth.getUser();
-  if(!u?.user) return;
-
-  for(const row of [...arr].reverse()){
-    try{
-      const payload = { client_id:row.client_id, category:row.cat||row.category, bac:row.bac, nb:row.nb, brut:row.brut, tare:row.tare, net:row.net, user_email:u.user.email||null };
-      const { error } = await supabase.from("trie_kg").upsert(payload,{ onConflict:"client_id" });
-      if(error) throw error;
-      removeTrieKgPending(row.client_id);
-    }catch{ break; }
-  }
-  await loadTrieKgData();
-  loadTrieAll();
-}
-
-async function loadTrieKgData(){
+/* Load TRIE from supabase -> cache */
+async function loadTrieData(){
   try{
     const { data, error } = await supabase
-      .from("trie_kg")
-      .select("created_at,client_id,category,bac,nb,brut,tare,net")
-      .order("created_at",{ascending:false})
-      .limit(4000);
+      .from("tri_entries")
+      .select("id, created_at, client_id, category, bac, nb, brut, tare, net")
+      .order("created_at",{ ascending:false })
+      .limit(3000);
     if(error) throw error;
-    setTrieKgCache(data||[], "LIVE");
+    lastTrieSource="LIVE";
+    setTrieCache(data||[], "LIVE");
   }catch{
-    lastTrieKgSource="CACHE";
+    lastTrieSource="CACHE";
   }
 }
 
-function buildTrieKgMerged(){
-  const pending=getTrieKgPending().map(p=>({
+function buildTrieMerged(){
+  const pending=getTriePending().map(p=>({
     created_at:new Date(p.local_created_at).toISOString(),
-    category:p.cat||p.category, bac:p.bac, nb:p.nb, brut:p.brut, tare:p.tare, net:p.net,
+    category:p.category, bac:p.bac, nb:p.nb,
+    brut:p.brut, tare:p.tare, net:p.net,
     _source:"ATTENTE"
   }));
-  const cached=getTrieKgCache().map(r=>({ ...r, _source:(lastTrieKgSource==="LIVE"?"LIVE":"CACHE") }));
+  const cached=getTrieCache().map(r=>({
+    ...r,
+    _source:(lastTrieSource==="LIVE"?"LIVE":"CACHE")
+  }));
   const all=[...pending,...cached].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
 
-  const totals={}; // key: day|cat
+  // totals per day+category (kg net)
+  const totals = {}; // key = day|cat
   for(const r of all){
     const day=ymdLocalFromISO(r.created_at);
-    const cat=String(r.category||"");
+    const cat=r.category || "—";
     const key=day+"|"+cat;
     totals[key]=(totals[key]||0)+num(r.net);
   }
-  const totalsArr=Object.keys(totals).map(k=>{
-    const [day,cat]=k.split("|");
-    return { day, cat, total:r1(totals[k]) };
-  }).sort((a,b)=> b.day.localeCompare(a.day) || a.cat.localeCompare(b.cat,"fr"));
+  const totalsArr = Object.keys(totals)
+    .map(k=>{
+      const [day,cat]=k.split("|");
+      return { day, category:cat, total:r1(totals[k]) };
+    })
+    .sort((a,b)=> (b.day.localeCompare(a.day) || String(a.category).localeCompare(String(b.category),"fr")));
 
   return { all, totalsArr };
 }
 
-function renderTrieKgTables(totalsId, histId){
-  const { all, totalsArr } = buildTrieKgMerged();
+function renderTrieTables(totalsId, histId){
+  const { all, totalsArr } = buildTrieMerged();
 
-  const tbT=$(totalsId); tbT.innerHTML = totalsArr.length
-    ? totalsArr.map(r=>`<tr><td>${r.day}</td><td>${r.cat}</td><td class="right"><b>${r.total}</b></td></tr>`).join("")
+  const tbT=$(totalsId); tbT.innerHTML="";
+  tbT.innerHTML = totalsArr.length
+    ? totalsArr.map(r=>`<tr><td>${r.day}</td><td>${TRIE_LABEL[r.category]||r.category}</td><td class="right"><b>${r.total}</b></td></tr>`).join("")
     : `<tr><td colspan="3" class="muted">Aucune donnée</td></tr>`;
 
-  const tbH=$(histId); tbH.innerHTML = all.length
-    ? all.slice(0,700).map(r=>{
+  const tbH=$(histId); tbH.innerHTML="";
+  tbH.innerHTML = all.length
+    ? all.slice(0,500).map(r=>{
         const dt=new Date(r.created_at).toLocaleString();
+        const cat=TRIE_LABEL[r.category]||r.category;
+        const bac=r.bac||"—";
+        const nb=r.nb||"—";
         return `<tr>
           <td>${dt}</td>
-          <td>${r.category||""}</td>
-          <td>${r.bac||""}</td>
-          <td class="right">${r.nb||""}</td>
-          <td class="right">${r.brut||""}</td>
-          <td class="right">${r.tare||""}</td>
-          <td class="right"><b>${r.net||""}</b></td>
-          <td>${r._source}</td>
+          <td>${cat}</td>
+          <td>${bac}</td>
+          <td class="right">${nb}</td>
+          <td class="right">${r1(r.brut)}</td>
+          <td class="right">${r1(r.tare)}</td>
+          <td class="right"><b>${r1(r.net)}</b></td>
+          <td>${r._source||"—"}</td>
         </tr>`;
       }).join("")
     : `<tr><td colspan="8" class="muted">Aucune donnée</td></tr>`;
 }
 
-function loadTrieAll(){
-  $("pamTriePendingCount").textContent = String(getPamTriePending().length);
-  $("aslTriePendingCount").textContent = String(getAslTriePending().length);
-  $("trieKgPendingCount").textContent  = String(getTrieKgPending().length);
+function renderTrieAll(){
+  // compteurs pending
+  $("triePendingCount").textContent = String(getTriePending().length);
 
-  renderPamTrieTables("pamTrieTotals","pamTrieHist");
-  renderAslTrieTables("aslTrieTotals","aslTrieHist");
-  renderTrieKgTables("trieKgTotals","trieKgHist");
+  // page TRIE
+  renderTrieTables("trieTotalsDay", "trieHist");
 
-  renderPamTrieTables("pamTrieTotalsHist","pamTrieHistHist");
-  renderAslTrieTables("aslTrieTotalsHist","aslTrieHistHist");
-  renderTrieKgTables("trieKgTotalsHist","trieKgHistHist");
+  // page HIST
+  renderTrieTables("trieTotalsDayHist", "trieHistHist");
 }
 
-/* INIT */
+/* Init */
 (async ()=>{
   refreshNetwork();
-  buildTrieKgUI();
 
+  // init pending counts
   setPending(getPending());
+  setTriePending(getTriePending());
+
+  // init display
   renderPending();
   calc();
+  calcTrie();
 
+  // source from cache meta
   const meta = getHistoryMeta();
   lastHistorySource = meta?.source || "CACHE";
   setStoreBadge();
   renderMixedHistory();
 
-  setPamTriePending(getPamTriePending());
-  setAslTriePending(getAslTriePending());
-  setTrieKgPending(getTrieKgPending());
+  const tmeta = getTrieMeta();
+  lastTrieSource = tmeta?.source || "CACHE";
+  renderTrieAll();
 
   const { data } = await supabase.auth.getUser();
   if(data?.user){
@@ -1289,23 +1174,19 @@ function loadTrieAll(){
     await loadCities();
     await loadData();
 
-    await loadPamTrieData();
-    await loadAslTrieData();
-    await loadTrieKgData();
-    loadTrieAll();
+    await loadTrieData();
+    renderTrieAll();
 
     $("recapDate").value = ymdToday();
     buildRecap();
 
     syncPending();
-    syncPamTriePending();
-    syncAslTriePending();
-    syncTrieKgPending();
+    syncTriePending();
 
     show("pesee");
   }else{
     $("pendingCount").textContent = String(getPending().length);
-    loadTrieAll();
+    $("triePendingCount").textContent = String(getTriePending().length);
   }
 })();
 
