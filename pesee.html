@@ -79,6 +79,7 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
         <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
         <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
         <button class="smallBtn" onclick="show('trie')">TRIE</button>
+
         <button class="smallBtn" onclick="loadData()">🔄 Rafraîchir</button>
         <button class="smallBtn" onclick="syncPending()">⟳ SYNC (<span id="pendingCount">0</span>)</button>
         <button class="smallBtn" onclick="logout()">🚪 Déconnexion</button>
@@ -205,29 +206,6 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
           </table>
         </div>
 
-        <!-- ✅ PAM TRIÉ (NOUVEAU) -->
-        <h4 style="margin-top:14px">PAM trié</h4>
-
-        <h4 style="margin-top:10px">Total (toutes villes)</h4>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr><th class="right">PAM TRIÉ</th></tr>
-            </thead>
-            <tbody id="recapTrieAll"></tbody>
-          </table>
-        </div>
-
-        <h4 style="margin-top:14px">Par ville</h4>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr><th>Ville</th><th class="right">PAM TRIÉ</th></tr>
-            </thead>
-            <tbody id="recapTrieByCity"></tbody>
-          </table>
-        </div>
-
         <hr>
 
         <h3>En attente (hors-ligne)</h3>
@@ -268,26 +246,21 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
         <h2>Trie</h2>
 
         <div class="grid">
-          <div class="col-4">
-            <label>Ville</label>
-            <select id="trieVille"></select>
-          </div>
-
-          <div class="col-4">
+          <div class="col-6">
             <label>Nombre de PAM trié</label>
             <select id="trieNb"></select>
           </div>
 
-          <div class="col-4" style="display:flex;gap:10px;align-items:end">
+          <div class="col-6" style="display:flex;gap:10px;align-items:end">
             <button style="flex:1" onclick="saveTrie(+1)">＋</button>
             <button class="danger" style="flex:1" onclick="saveTrie(-1)">－</button>
           </div>
-        </div>
 
-        <hr>
-
-        <div class="muted">
-          Chaque clic enregistre une ligne <b>PAM_TRIE</b> (nb positif ou négatif) et ça apparait dans l’historique.
+          <div class="col-12">
+            <div class="muted">
+              La ville utilisée = celle choisie dans PESÉE (pas de ville ici).
+            </div>
+          </div>
         </div>
       </div>
 
@@ -362,9 +335,9 @@ function show(p){
     renderPending();
     renderMixedHistory();
   }
+
   if(p==="trie"){
-    // Assure le select ville trie à jour
-    mirrorTrieVille();
+    // rien à charger, juste garder la ville de PESÉE
   }
 }
 
@@ -411,14 +384,13 @@ function renderPending(){
     return;
   }
   arr.forEach(x=>{
-    const netDisp = (String(x.type).toUpperCase()==="PAM_TRIE") ? "" : x.net;
     tb.innerHTML += `
       <tr>
         <td>${new Date(x.local_created_at).toLocaleString()}</td>
         <td>${x.ville}</td>
         <td>${x.type}</td>
         <td class="right">${x.nb}</td>
-        <td class="right">${netDisp}</td>
+        <td class="right">${x.net}</td>
         <td class="right">
           <button class="smallBtn danger" onclick="deletePending('${x.client_id}')">Suppr</button>
         </td>
@@ -487,15 +459,13 @@ function renderMixedHistory(){
           : `<td><button class="smallBtn danger" onclick="deleteRow(${r.id})">Suppr</button></td>`)
       : "";
 
-    const netDisp = (String(r.type).toUpperCase()==="PAM_TRIE") ? "" : r.net;
-
     tb.innerHTML += `
       <tr>
         <td>${new Date(r.created_at).toLocaleString()}</td>
         <td>${r.ville}</td>
         <td>${r.type}</td>
         <td class="right">${r.nb}</td>
-        <td class="right">${netDisp}</td>
+        <td class="right">${r.net}</td>
         <td>${srcTag}</td>
         ${adminCell}
       </tr>`;
@@ -619,9 +589,6 @@ async function loadCities(){
     });
     if(!sel.options.length) sel.innerHTML = "<option>—</option>";
 
-    // Trie: on copie les mêmes villes
-    mirrorTrieVille();
-
     const tb = $("citiesAdmin");
     tb.innerHTML = "";
     if(!isAdminUser){
@@ -641,22 +608,6 @@ async function loadCities(){
   }catch(e){
     setStatus("❌ VILLES: " + (e?.message || String(e)));
   }
-}
-
-function mirrorTrieVille(){
-  const src = $("ville");
-  const dst = $("trieVille");
-  if(!src || !dst) return;
-
-  const prev = dst.value;
-  dst.innerHTML = "";
-  Array.from(src.options).forEach(o=>{
-    const opt = document.createElement("option");
-    opt.value = o.value;
-    opt.textContent = o.textContent;
-    dst.appendChild(opt);
-  });
-  if(prev) dst.value = prev;
 }
 
 async function addCity(){
@@ -770,15 +721,16 @@ async function saveSafe(){
   }
 }
 
-/* ✅ TRIE : enregistre PAM_TRIE automatiquement (Supabase sinon pending) */
+/* ✅ TRIE : enregistre + / - automatiquement, ville = celle de PESÉE */
 async function saveTrie(sign){
   try{
-    const ville = ($("trieVille").value || "").trim();
+    const ville = ($("ville").value || "").trim();   // ville de PESÉE
     const qty = Number($("trieNb").value) || 0;
-    if(!ville || ville==="—") return alert("Choisis une ville.");
+
+    if(!ville || ville==="—") return alert("Choisis une ville dans PESÉE.");
     if(qty<=0) return alert("Choisis un nombre.");
 
-    const nb = sign * qty; // +qty ou -qty
+    const nb = sign * qty;
     const client_id = "t_" + Date.now() + "_" + Math.random().toString(16).slice(2);
 
     const payload = {
@@ -802,8 +754,11 @@ async function saveTrie(sign){
     renderPending();
     renderMixedHistory();
   }catch(e){
-    const ville = ($("trieVille").value || "").trim();
+    const ville = ($("ville").value || "").trim();
     const qty = Number($("trieNb").value) || 0;
+    if(!ville || ville==="—") return alert("Choisis une ville dans PESÉE.");
+    if(qty<=0) return alert("Choisis un nombre.");
+
     const nb = sign * qty;
     const client_id = "t_" + Date.now() + "_" + Math.random().toString(16).slice(2);
 
@@ -898,39 +853,23 @@ function inLocalDay(isoOrMs, start, end){
   const t = typeof isoOrMs==="number" ? isoOrMs : new Date(isoOrMs).getTime();
   return t>=start && t<end;
 }
-
-/* ✅ Récap avec PAM_TRIE */
 function recapFromRows(rows, pendingRows){
   const totalAll = {PAM:0,ASL:0,ABJ:0,F:0,HF:0};
   const byCity = {};
-
-  let pamTrieAll = 0;
-  const pamTrieByCity = {};
-
-  const add = (ville, type, net, nb)=>{
+  const add = (ville, type, net)=>{
     const t = String(type||"").toUpperCase();
-    const v = ville || "—";
-
-    if(t === "PAM_TRIE"){
-      const n = Number(nb) || 0;
-      pamTrieAll += n;
-      pamTrieByCity[v] = (pamTrieByCity[v] || 0) + n;
-      return;
-    }
-
     if(!TYPES.includes(t)) return;
     const n = num(net);
     totalAll[t]+=n;
+    const v = ville || "—";
     if(!byCity[v]) byCity[v]={PAM:0,ASL:0,ABJ:0,F:0,HF:0};
     byCity[v][t]+=n;
   };
-
-  (rows||[]).forEach(r=> add(r.ville, r.type, r.net, r.nb));
-  (pendingRows||[]).forEach(p=> add(p.ville, p.type, p.net, p.nb));
-  return { totalAll, byCity, pamTrieAll, pamTrieByCity };
+  (rows||[]).forEach(r=> add(r.ville, r.type, r.net));
+  (pendingRows||[]).forEach(p=> add(p.ville, p.type, p.net));
+  return { totalAll, byCity };
 }
-
-function renderRecapTables(totalAll, byCity, pamTrieAll, pamTrieByCity){
+function renderRecapTables(totalAll, byCity){
   const sumAll = TYPES.reduce((s,k)=>s+totalAll[k],0);
   $("recapAll").innerHTML = `
     <tr>
@@ -941,42 +880,26 @@ function renderRecapTables(totalAll, byCity, pamTrieAll, pamTrieByCity){
       <td class="right">${r1(totalAll.HF)}</td>
       <td class="right"><b>${r1(sumAll)}</b></td>
     </tr>`;
-
   const villes = Object.keys(byCity).sort((a,b)=>a.localeCompare(b,"fr"));
   if(!villes.length){
     $("recapByCity").innerHTML = `<tr><td colspan="7" class="muted">Aucune donnée</td></tr>`;
-  }else{
-    $("recapByCity").innerHTML = villes.map(v=>{
-      const o = byCity[v];
-      const sum = TYPES.reduce((s,k)=>s+o[k],0);
-      return `
-        <tr>
-          <td>${v}</td>
-          <td class="right">${r1(o.PAM)}</td>
-          <td class="right">${r1(o.ASL)}</td>
-          <td class="right">${r1(o.ABJ)}</td>
-          <td class="right">${r1(o.F)}</td>
-          <td class="right">${r1(o.HF)}</td>
-          <td class="right"><b>${r1(sum)}</b></td>
-        </tr>`;
-    }).join("");
+    return;
   }
-
-  $("recapTrieAll").innerHTML = `<tr><td class="right"><b>${Number(pamTrieAll)||0}</b></td></tr>`;
-
-  const villesTrie = Object.keys(pamTrieByCity||{}).sort((a,b)=>a.localeCompare(b,"fr"));
-  if(!villesTrie.length){
-    $("recapTrieByCity").innerHTML = `<tr><td colspan="2" class="muted">Aucune donnée</td></tr>`;
-  }else{
-    $("recapTrieByCity").innerHTML = villesTrie.map(v=>`
+  $("recapByCity").innerHTML = villes.map(v=>{
+    const o = byCity[v];
+    const sum = TYPES.reduce((s,k)=>s+o[k],0);
+    return `
       <tr>
         <td>${v}</td>
-        <td class="right"><b>${Number(pamTrieByCity[v])||0}</b></td>
-      </tr>
-    `).join("");
-  }
+        <td class="right">${r1(o.PAM)}</td>
+        <td class="right">${r1(o.ASL)}</td>
+        <td class="right">${r1(o.ABJ)}</td>
+        <td class="right">${r1(o.F)}</td>
+        <td class="right">${r1(o.HF)}</td>
+        <td class="right"><b>${r1(sum)}</b></td>
+      </tr>`;
+  }).join("");
 }
-
 async function buildRecap(){
   try{
     const date = $("recapDate").value || ymdToday();
@@ -989,52 +912,46 @@ async function buildRecap(){
     try{
       const { data, error } = await supabase
         .from("pesees")
-        .select("ville,type,net,nb,created_at")
+        .select("ville,type,net,created_at")
         .gte("created_at", s.toISOString())
         .lt("created_at", e.toISOString())
         .limit(5000);
       if(error) throw error;
 
-      const rows = data || [];
       const { start, end } = dayRangeLocal(date);
       const pendToday = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
-
-      const recap = recapFromRows(rows, pendToday);
-      renderRecapTables(recap.totalAll, recap.byCity, recap.pamTrieAll, recap.pamTrieByCity);
+      const recap = recapFromRows(data || [], pendToday);
+      renderRecapTables(recap.totalAll, recap.byCity);
       return;
     }catch{
       const { start, end } = dayRangeLocal(date);
       const cache = getHistoryCache().filter(r=> inLocalDay(r.created_at, start, end));
       const pend = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
-
       const recap = recapFromRows(cache, pend);
-      renderRecapTables(recap.totalAll, recap.byCity, recap.pamTrieAll, recap.pamTrieByCity);
+      renderRecapTables(recap.totalAll, recap.byCity);
       return;
     }
   }catch(e){
     $("recapAll").innerHTML = `<tr><td colspan="6">Erreur: ${(e?.message||String(e))}</td></tr>`;
     $("recapByCity").innerHTML = "";
-    $("recapTrieAll").innerHTML = "";
-    $("recapTrieByCity").innerHTML = "";
   }
 }
 
 /* Init */
 (async ()=>{
-  refreshNetwork();
-
-  // Remplit select Trie (1..50)
-  const selTrieNb = $("trieNb");
-  if(selTrieNb){
-    selTrieNb.innerHTML = "";
+  // Remplit la liste 1..50 pour TRIE
+  const selTrie = $("trieNb");
+  if(selTrie){
+    selTrie.innerHTML = "";
     for(let i=1;i<=50;i++){
       const o=document.createElement("option");
       o.value=String(i);
       o.textContent=String(i);
-      selTrieNb.appendChild(o);
+      selTrie.appendChild(o);
     }
   }
 
+  refreshNetwork();
   setPending(getPending());
   renderPending();
   calc();
@@ -1057,7 +974,6 @@ async function buildRecap(){
 
     await loadCities();
     await loadData();
-
     $("recapDate").value = ymdToday();
     buildRecap();
     syncPending();
