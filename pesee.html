@@ -44,7 +44,7 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
 /* === CLEAN VISUEL : plus de bleu + pas de petites descriptions === */
 label, th, .badge, .muted, .tag { color:#ffffff !important; }
 .muted, .tag { display:none !important; }
-#status { display:none !important; } /* option : cache la ligne "Prêt./SYNC..." */
+#status { display:none !important; }
 </style>
 </head>
 
@@ -93,7 +93,6 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
       <!-- PAGE PESÉE -->
       <div id="pagePesee">
         <h2>Pesée</h2>
-        <p class="muted">Si hors-ligne ou Supabase en erreur → la pesée est stockée en “En attente”, puis SYNC.</p>
 
         <div class="grid">
           <div class="col-4">
@@ -124,7 +123,6 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
 
           <div class="col-12">
             <div class="big">Net : <span id="net">0</span> kg</div>
-            <div class="muted">Tare : PAM 59, ASL 45, ABJ 43, F 0, HF 0</div>
           </div>
 
           <div class="col-12">
@@ -133,7 +131,7 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
         </div>
       </div>
 
-      <!-- PAGE TRIE -->
+      <!-- PAGE TRIE (SIMPLIFIÉE) -->
       <div id="pageTrie" style="display:none">
         <h2>Trie</h2>
 
@@ -144,15 +142,12 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
           </div>
 
           <div class="col-8" style="display:flex;align-items:end;gap:10px;flex-wrap:wrap">
-            <button class="smallBtn" onclick="saveTrie(+1)">+1</button>
-            <button class="smallBtn danger" onclick="saveTrie(-1)">-1</button>
-
-            <button class="smallBtn" onclick="saveTrie(+num($('trieNb').value))">+ Ajouter</button>
-            <button class="smallBtn danger" onclick="saveTrie(-num($('trieNb').value))">- Retirer</button>
+            <button class="smallBtn" onclick="saveTrie(+num($('trieNb').value))">+</button>
+            <button class="smallBtn danger" onclick="saveTrie(-num($('trieNb').value))">-</button>
           </div>
 
           <div class="col-12">
-            <div class="badge">Astuce : chaque clic s’enregistre et apparaît dans Historique → Trie.</div>
+            <div class="badge">Chaque clic s’enregistre et apparaît dans Historique → Trie.</div>
           </div>
         </div>
       </div>
@@ -160,38 +155,6 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
       <!-- PAGE HIST -->
       <div id="pageHist" style="display:none">
         <h2>Historique</h2>
-
-        <!-- ADMIN PANEL -->
-        <div id="adminPanel" style="display:none">
-          <hr>
-          <h3>Admin – Villes</h3>
-
-          <div class="grid">
-            <div class="col-6">
-              <label>Ajouter une ville</label>
-              <input id="newCity" type="text" placeholder="Ex: Toulouse">
-            </div>
-            <div class="col-6" style="display:flex;align-items:end;gap:8px;flex-wrap:wrap">
-              <button class="smallBtn" onclick="addCity()">➕ Ajouter</button>
-              <button class="smallBtn" onclick="loadCities()">🔄 Recharger</button>
-            </div>
-            <div class="col-12">
-              <div class="tableWrap">
-                <table>
-                  <thead><tr><th>Ville</th><th class="right">Action</th></tr></thead>
-                  <tbody id="citiesAdmin"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <hr>
-          <h3>Admin – Historique</h3>
-          <button class="smallBtn danger" onclick="clearAll()">🧹 Vider tout l’historique</button>
-          <p class="muted">⚠️ Action irréversible.</p>
-        </div>
-
-        <hr>
 
         <!-- Récap -->
         <h3>Récap du jour</h3>
@@ -203,9 +166,6 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
           <div class="col-2" style="display:flex;align-items:end;gap:8px;flex-wrap:wrap">
             <button class="smallBtn" onclick="recapToday()">Aujourd’hui</button>
             <button class="smallBtn" onclick="buildRecap()">Afficher</button>
-          </div>
-          <div class="col-6" style="display:flex;align-items:end">
-            <div class="muted">Hors-ligne : utilise cache + en attente.</div>
           </div>
         </div>
 
@@ -240,7 +200,6 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
             <tbody id="pendingTable"></tbody>
           </table>
         </div>
-        <p class="muted">Clique “SYNC” pour envoyer les lignes en attente vers Supabase.</p>
 
         <hr>
 
@@ -318,20 +277,6 @@ function setStoreBadge(){
 window.addEventListener("online", ()=>{ refreshNetwork(); syncPending(); });
 window.addEventListener("offline", refreshNetwork);
 
-/* Admin UI */
-function setAdminUI(){
-  $("badgeAdmin").textContent = isAdminUser ? "ADMIN" : "Utilisateur";
-  $("adminPanel").style.display = isAdminUser ? "block" : "none";
-  $("thAdmin").style.display = isAdminUser ? "table-cell" : "none";
-}
-
-/* Admin check */
-async function checkAdmin(){
-  const { data, error } = await supabase.rpc("is_admin");
-  if(error) throw error;
-  return !!data;
-}
-
 /* Pages */
 function show(p){
   $("pagePesee").style.display = (p==="pesee") ? "block" : "none";
@@ -341,9 +286,7 @@ function show(p){
   if(p==="hist"){
     if(!$("recapDate").value) $("recapDate").value = ymdToday();
     $("recapDate").onchange = ()=>{ buildRecap(); renderMixedHistory(); };
-
     buildRecap();
-    loadCities();
     loadData();
     renderPending();
     renderMixedHistory();
@@ -474,21 +417,20 @@ function renderMixedHistory(){
   tbP.innerHTML = "";
   tbT.innerHTML = "";
 
-  if(!all.length){
-    tbP.innerHTML = `<tr><td colspan="${isAdminUser?7:6}">Aucune donnée</td></tr>`;
-    tbT.innerHTML = `<tr><td colspan="4">Aucune donnée</td></tr>`;
-    if($("totalTrieJour")) $("totalTrieJour").textContent = "0";
-    return;
-  }
-
   const date = ($("recapDate")?.value) || ymdToday();
   const { start, end } = dayRangeLocal(date);
   let totalTrie = 0;
 
+  if(!all.length){
+    tbP.innerHTML = `<tr><td colspan="6">Aucune donnée</td></tr>`;
+    tbT.innerHTML = `<tr><td colspan="4">Aucune donnée</td></tr>`;
+    $("totalTrieJour").textContent = "0";
+    return;
+  }
+
   all.forEach(r=>{
     const dateHeure = new Date(r.created_at).toLocaleString();
     const src = r._source;
-
     const isTrie = (r.type === "PAM_TRIE");
 
     if(isTrie && inLocalDay(r.created_at, start, end)){
@@ -505,12 +447,6 @@ function renderMixedHistory(){
         </tr>
       `;
     } else {
-      const adminCell = isAdminUser
-        ? (src==="ATTENTE"
-            ? `<td>—</td>`
-            : `<td><button class="smallBtn danger" onclick="deleteRow(${r.id})">Suppr</button></td>`)
-        : "";
-
       tbP.innerHTML += `
         <tr>
           <td>${dateHeure}</td>
@@ -519,38 +455,25 @@ function renderMixedHistory(){
           <td class="right">${r.nb}</td>
           <td class="right">${r.net}</td>
           <td>${src}</td>
-          ${adminCell}
         </tr>
       `;
     }
   });
 
-  if($("totalTrieJour")) $("totalTrieJour").textContent = String(totalTrie);
-
-  if(!tbT.innerHTML.trim()){
-    tbT.innerHTML = `<tr><td colspan="4">Aucun PAM trié</td></tr>`;
-  }
+  $("totalTrieJour").textContent = String(totalTrie);
+  if(!tbT.innerHTML.trim()) tbT.innerHTML = `<tr><td colspan="4">Aucun PAM trié</td></tr>`;
 }
 
-/* ✅ SYNC pending -> Supabase (anti-doublon via upsert client_id) */
+/* ✅ SYNC pending -> Supabase */
 async function syncPending(){
   const arr = getPending();
   $("pendingCount").textContent = String(arr.length);
   if(!arr.length) return;
 
-  if(!navigator.onLine){
-    setStatus("Hors-ligne : SYNC impossible.");
-    return;
-  }
+  if(!navigator.onLine) return;
 
   const { data: u } = await supabase.auth.getUser();
-  if(!u?.user){
-    setStatus("Connecte-toi pour SYNC.");
-    return;
-  }
-
-  setStatus("SYNC… ("+arr.length+" en attente)");
-  let ok = 0;
+  if(!u?.user) return;
 
   const toSend = [...arr].reverse();
   for(const row of toSend){
@@ -571,20 +494,14 @@ async function syncPending(){
 
       if(error) throw error;
 
-      ok++;
       removePending(row.client_id);
-    }catch(e){
-      setStatus("❌ SYNC arrêté : " + (e?.message || String(e)));
-      renderPending();
-      renderMixedHistory();
-      return;
+    }catch{
+      break;
     }
   }
 
   renderPending();
-  setStatus("✅ SYNC terminé : "+ok+" envoyées");
   await loadData();
-  await buildRecap();
   renderMixedHistory();
 }
 
@@ -599,22 +516,11 @@ async function login(){
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if(error) throw error;
 
-    const { data } = await supabase.auth.getUser();
-    currentUser = data?.user || null;
-
-    try { isAdminUser = await checkAdmin(); } catch { isAdminUser = false; }
-    setAdminUI();
-
-    $("badgeUser").textContent = currentUser?.email ? ("Connecté : " + currentUser.email) : "Connecté";
     $("loginScreen").style.display = "none";
     $("app").style.display = "block";
 
-    await loadCities();
     await loadData();
-
     if(!$("recapDate").value) $("recapDate").value = ymdToday();
-    setLoginMsg("");
-    setStatus("✅ Connecté");
 
     syncPending();
     show("pesee");
@@ -624,83 +530,11 @@ async function login(){
 }
 
 async function logout(){
-  try{
-    setStatus("Déconnexion…");
-    await supabase.auth.signOut();
-    location.reload();
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
-  }
+  await supabase.auth.signOut();
+  location.reload();
 }
 
-/* Villes */
-async function loadCities(){
-  try{
-    const { data, error } = await supabase.from("villes").select("id, nom").order("nom", { ascending:true }).limit(500);
-    if(error) throw error;
-
-    const sel = $("ville");
-    sel.innerHTML = "";
-    (data||[]).forEach(v=>{
-      const opt = document.createElement("option");
-      opt.value = v.nom;
-      opt.textContent = v.nom;
-      sel.appendChild(opt);
-    });
-    if(!sel.options.length) sel.innerHTML = "<option>—</option>";
-
-    const tb = $("citiesAdmin");
-    tb.innerHTML = "";
-    if(!isAdminUser){
-      tb.innerHTML = `<tr><td colspan="2">Admin uniquement</td></tr>`;
-      return;
-    }
-    (data||[]).forEach(v=>{
-      tb.innerHTML += `
-        <tr>
-          <td>${v.nom}</td>
-          <td class="right">
-            <button class="smallBtn danger" onclick="deleteCity(${v.id}, '${String(v.nom).replace(/'/g,"&#39;")}')">Suppr</button>
-          </td>
-        </tr>`;
-    });
-    if(!(data||[]).length) tb.innerHTML = `<tr><td colspan="2">Aucune ville</td></tr>`;
-  }catch(e){
-    setStatus("❌ VILLES: " + (e?.message || String(e)));
-  }
-}
-
-async function addCity(){
-  if(!isAdminUser) return alert("Admin uniquement");
-  const name = ($("newCity").value || "").trim();
-  if(!name) return alert("Entre un nom de ville.");
-  try{
-    setStatus("Ajout ville…");
-    const { error } = await supabase.from("villes").insert({ nom: name });
-    if(error) throw error;
-    $("newCity").value = "";
-    setStatus("✅ Ville ajoutée");
-    await loadCities();
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
-  }
-}
-
-async function deleteCity(id, nom){
-  if(!isAdminUser) return alert("Admin uniquement");
-  if(!confirm("Supprimer la ville : " + nom + " ?")) return;
-  try{
-    setStatus("Suppression ville…");
-    const { error } = await supabase.from("villes").delete().eq("id", id);
-    if(error) throw error;
-    setStatus("✅ Ville supprimée");
-    await loadCities();
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
-  }
-}
-
-/* ✅ Enregistrer Pesée : upsert avec client_id (anti-doublon). Sinon pending. */
+/* ✅ Enregistrer Pesée */
 async function saveSafe(){
   try{
     calc();
@@ -715,108 +549,52 @@ async function saveSafe(){
     if(brut<=0) return alert("Entre un poids brut.");
     if(brut<tare) return alert("Brut inférieur à la tare.");
 
-    const ok = confirm(
-      "Confirmer ?\n\n" +
-      "Ville: " + ville + "\n" +
-      "Type: " + type + " | Nb: " + nb + "\n" +
-      "Brut: " + r1(brut) + " kg\n" +
-      "Tare: " + r1(tare) + " kg\n" +
-      "NET:  " + r1(net) + " kg"
-    );
-    if(!ok) return;
-
     const client_id = "p_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+    const payload = { client_id, ville, type, nb, brut: r1(brut), tare: r1(tare), net: r1(net) };
 
-    const payload = {
-      client_id,
-      ville, type, nb,
-      brut: r1(brut),
-      tare: r1(tare),
-      net: r1(net)
-    };
-
-    setStatus("Insertion…");
-    const { error } = await supabase
-      .from("pesees")
-      .upsert(payload, { onConflict: "client_id" });
-
+    const { error } = await supabase.from("pesees").upsert(payload, { onConflict: "client_id" });
     if(error) throw error;
 
     $("brut").value = "";
     calc();
-
-    setStatus("✅ Enregistré");
     await loadData();
-    await buildRecap();
     renderMixedHistory();
     show("pesee");
-  }catch(e){
+  }catch{
     const nb = Number($("nb").value);
     const brut = num($("brut").value);
     const tare = (T[$("type").value] || 0) * nb;
     const net = Math.max(0, brut - tare);
     const ville = ($("ville").value || "").trim();
     const type = A[$("type").value];
-
     const client_id = "p_" + Date.now() + "_" + Math.random().toString(16).slice(2);
 
-    addPending({
-      client_id,
-      local_created_at: Date.now(),
-      ville, type, nb,
-      brut: r1(brut),
-      tare: r1(tare),
-      net: r1(net)
-    });
-
+    addPending({ client_id, local_created_at: Date.now(), ville, type, nb, brut: r1(brut), tare: r1(tare), net: r1(net) });
     $("brut").value = "";
     calc();
-
-    setStatus("⚠️ Hors-ligne / erreur : enregistré EN ATTENTE. Clique SYNC.");
     renderPending();
     renderMixedHistory();
-    buildRecap();
     show("pesee");
   }
 }
 
-/* ✅ Enregistrer TRIE (auto) : type PAM_TRIE, ville TRIE */
+/* ✅ Enregistrer TRIE (auto) */
 async function saveTrie(delta){
   const d = Number(delta);
   if(!Number.isFinite(d) || d===0) return;
 
   try{
     const client_id = "t_" + Date.now() + "_" + Math.random().toString(16).slice(2);
-    const payload = {
-      client_id,
-      ville: "TRIE",
-      type: "PAM_TRIE",
-      nb: d,
-      brut: 0,
-      tare: 0,
-      net: 0
-    };
+    const payload = { client_id, ville:"TRIE", type:"PAM_TRIE", nb:d, brut:0, tare:0, net:0 };
 
-    const { error } = await supabase
-      .from("pesees")
-      .upsert(payload, { onConflict: "client_id" });
-
+    const { error } = await supabase.from("pesees").upsert(payload, { onConflict:"client_id" });
     if(error) throw error;
 
     await loadData();
     renderMixedHistory();
-  }catch(e){
+  }catch{
     const client_id = "t_" + Date.now() + "_" + Math.random().toString(16).slice(2);
-    addPending({
-      client_id,
-      local_created_at: Date.now(),
-      ville: "TRIE",
-      type: "PAM_TRIE",
-      nb: d,
-      brut: 0,
-      tare: 0,
-      net: 0
-    });
+    addPending({ client_id, local_created_at: Date.now(), ville:"TRIE", type:"PAM_TRIE", nb:d, brut:0, tare:0, net:0 });
     renderPending();
     renderMixedHistory();
   }
@@ -837,47 +615,14 @@ async function loadData(){
     setHistoryCache(data || [], "LIVE");
     setStoreBadge();
     renderMixedHistory();
-  }catch(e){
+  }catch{
     lastHistorySource = "CACHE";
     setStoreBadge();
-    setStatus("⚠️ Supabase indisponible : affichage depuis le CACHE local.");
     renderMixedHistory();
   }
 }
 
-/* Admin delete / clear */
-async function deleteRow(id){
-  if(!isAdminUser) return alert("Admin uniquement");
-  if(!confirm("Supprimer cette ligne ?")) return;
-  try{
-    setStatus("Suppression…");
-    const { error } = await supabase.from("pesees").delete().eq("id", id);
-    if(error) throw error;
-    setStatus("✅ Supprimé");
-    await loadData();
-    await buildRecap();
-    renderMixedHistory();
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
-  }
-}
-async function clearAll(){
-  if(!isAdminUser) return alert("Admin uniquement");
-  if(!confirm("⚠️ Vider TOUT l’historique ?")) return;
-  try{
-    setStatus("Suppression totale…");
-    const { error } = await supabase.from("pesees").delete().gte("id", 0);
-    if(error) throw error;
-    setStatus("✅ Historique vidé");
-    await loadData();
-    await buildRecap();
-    renderMixedHistory();
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
-  }
-}
-
-/* --- RÉCAP : live sinon cache+pending --- */
+/* --- RÉCAP --- */
 function ymdToday(){
   const d=new Date();
   const y=d.getFullYear();
@@ -965,18 +710,15 @@ async function buildRecap(){
       const pendToday = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
       const recap = recapFromRows(data || [], pendToday);
       renderRecapTables(recap.totalAll, recap.byCity);
-      return;
     }catch{
       const { start, end } = dayRangeLocal(date);
       const cache = getHistoryCache().filter(r=> inLocalDay(r.created_at, start, end));
       const pend = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
       const recap = recapFromRows(cache, pend);
       renderRecapTables(recap.totalAll, recap.byCity);
-      return;
     }
   }catch(e){
-    $("recapAll").innerHTML = `<tr><td colspan="6">Erreur: ${(e?.message||String(e))}</td></tr>`;
-    $("recapByCity").innerHTML = "";
+    $("recapAll").innerHTML = `<tr><td colspan="6">Erreur</td></tr>`;
   }
 }
 
@@ -995,21 +737,12 @@ async function buildRecap(){
 
   const { data } = await supabase.auth.getUser();
   if(data?.user){
-    currentUser = data.user;
-    $("badgeUser").textContent = currentUser?.email ? ("Connecté : " + currentUser.email) : "Connecté";
-
-    try { isAdminUser = await checkAdmin(); } catch { isAdminUser = false; }
-    setAdminUI();
-
     $("loginScreen").style.display = "none";
     $("app").style.display = "block";
-
-    await loadCities();
     await loadData();
     $("recapDate").value = ymdToday();
     buildRecap();
     syncPending();
-
     show("pesee");
   }else{
     $("pendingCount").textContent = String(getPending().length);
