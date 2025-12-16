@@ -12,23 +12,39 @@
 
 <style>
 body{margin:0;font-family:system-ui;background:#0b0c10;color:#fff}
-.wrap{max-width:980px;margin:auto;padding:16px}
+.wrap{max-width:1000px;margin:auto;padding:16px}
 .card{background:#12141b;border-radius:16px;padding:16px}
-label{display:block;font-size:12px;margin:6px 0 4px}
-input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0f1118;color:#fff}
-button{padding:14px;border-radius:12px;border:none;background:#b22222;color:#fff;font-weight:800}
-.smallBtn{padding:10px 12px;font-size:12px}
-.danger{background:#8b0000}
+.hidden{display:none}
+
+label{display:block;font-size:13px;margin:6px 0 4px}
+input,select{
+  width:100%;padding:12px;border-radius:12px;
+  border:1px solid #333;background:#0f1118;color:#fff
+}
+button{
+  padding:14px;border-radius:12px;border:none;
+  background:#b22222;color:#fff;font-weight:800
+}
+button.small{padding:10px 12px;font-size:12px}
+button.danger{background:#8b0000}
+
 .grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr)}
-.col-12{grid-column:span 12}.col-6{grid-column:span 6}.col-4{grid-column:span 4}.col-3{grid-column:span 3}.col-2{grid-column:span 2}
-@media(max-width:820px){.col-6,.col-4,.col-3,.col-2{grid-column:span 12}}
+.col-12{grid-column:span 12}
+.col-6{grid-column:span 6}
+.col-4{grid-column:span 4}
+.col-3{grid-column:span 3}
+.col-2{grid-column:span 2}
+@media(max-width:800px){.col-6,.col-4,.col-3,.col-2{grid-column:span 12}}
+
 .big{font-size:36px;font-weight:900;margin:10px 0}
-.tableWrap{overflow:auto;border-radius:12px;border:1px solid #222;margin-top:12px}
+.tableWrap{border:1px solid #222;border-radius:12px;overflow:auto;margin-top:10px}
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px;border-bottom:1px solid #222}
-th{text-align:left;font-size:12px}
+th{font-size:12px;text-align:left}
 .right{text-align:right}
-.hidden{display:none}
+
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.badge{padding:4px 10px;border:1px solid #333;border-radius:999px;font-size:12px}
 </style>
 </head>
 
@@ -52,11 +68,12 @@ th{text-align:left;font-size:12px}
   <div class="card">
 
     <!-- NAV -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-      <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
-      <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
-      <button class="smallBtn" onclick="show('trie')">TRI</button>
-      <button class="smallBtn danger" onclick="logout()">X</button>
+    <div class="nav">
+      <button class="small" onclick="show('pesee')">PESÉE</button>
+      <button class="small" onclick="show('hist')">HISTORIQUE</button>
+      <button class="small" onclick="show('trie')">TRI</button>
+      <span class="badge" id="badgeRole">USER</span>
+      <button class="small danger" onclick="logout()">X</button>
     </div>
 
     <!-- PAGE PESÉE -->
@@ -72,7 +89,7 @@ th{text-align:left;font-size:12px}
             <option value="PAM">PAM</option>
             <option value="ASL">ASL</option>
             <option value="ABJ">ABJ</option>
-            <option value="FRIGO">F</option>
+            <option value="F">F</option>
             <option value="HF">HF</option>
           </select>
         </div>
@@ -88,12 +105,12 @@ th{text-align:left;font-size:12px}
           <div class="big">NET : <span id="net">0</span> kg</div>
         </div>
         <div class="col-12">
-          <button onclick="saveSafe()">VALIDER</button>
+          <button onclick="save()">VALIDER</button>
         </div>
       </div>
     </div>
 
-    <!-- PAGE HISTORIQUE -->
+    <!-- PAGE HIST -->
     <div id="pageHist" class="hidden">
       <h2>Historique</h2>
       <div class="tableWrap">
@@ -108,26 +125,16 @@ th{text-align:left;font-size:12px}
 
     <!-- PAGE TRI -->
     <div id="pageTrie" class="hidden">
-      <h2>Trie</h2>
+      <h2>Trie / Filtres</h2>
 
       <div class="grid">
-        <div class="col-3">
-          <label>Date début</label>
-          <input id="t_d1" type="date">
-        </div>
-        <div class="col-3">
-          <label>Date fin</label>
-          <input id="t_d2" type="date">
-        </div>
-        <div class="col-3">
-          <label>Ville</label>
-          <select id="t_ville"><option value="">Toutes</option></select>
-        </div>
+        <div class="col-3"><label>Date début</label><input id="t_d1" type="date"></div>
+        <div class="col-3"><label>Date fin</label><input id="t_d2" type="date"></div>
+        <div class="col-3"><label>Ville</label><select id="t_ville"><option value="">Toutes</option></select></div>
         <div class="col-3">
           <label>Type</label>
           <select id="t_type">
-            <option value="">Tous</option>
-            <option>PAM</option><option>ASL</option><option>ABJ</option><option>F</option><option>HF</option>
+            <option value="">Tous</option><option>PAM</option><option>ASL</option><option>ABJ</option><option>F</option><option>HF</option>
           </select>
         </div>
         <div class="col-4">
@@ -143,8 +150,8 @@ th{text-align:left;font-size:12px}
           <select id="t_dir"><option value="desc">Desc</option><option value="asc">Asc</option></select>
         </div>
         <div class="col-6" style="display:flex;gap:8px;align-items:end">
-          <button class="smallBtn" onclick="loadTrie()">Filtrer</button>
-          <button class="smallBtn" onclick="exportTrie()">Export CSV</button>
+          <button class="small" onclick="loadTrie()">Filtrer</button>
+          <button class="small" onclick="exportTrie()">Export CSV</button>
         </div>
       </div>
 
@@ -153,7 +160,7 @@ th{text-align:left;font-size:12px}
           <thead>
             <tr><th>Date</th><th>Ville</th><th>Type</th><th class="right">Nb</th><th class="right">Net</th></tr>
           </thead>
-          <tbody id="trieTable"></tbody>
+          <tbody id="trieBody"></tbody>
         </table>
       </div>
     </div>
@@ -162,27 +169,28 @@ th{text-align:left;font-size:12px}
 </div>
 
 <script>
+/* SUPABASE */
 const supabase = window.supabase.createClient(
   "https://dzfokswsmkvhjhziqakj.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0"
 );
 
-const T={PAM:59,ASL:45,ABJ:43,FRIGO:0,HF:0};
+const TARE={PAM:59,ASL:45,ABJ:43,F:0,HF:0};
 const $=id=>document.getElementById(id);
 
 /* NAV */
 function show(p){
-  ["pagePesee","pageHist","pageTrie"].forEach(id=>$(id).classList.add("hidden"));
+  ["pagePesee","pageHist","pageTrie"].forEach(i=>$(i).classList.add("hidden"));
   if(p==="pesee") $("pagePesee").classList.remove("hidden");
-  if(p==="hist"){$("pageHist").classList.remove("hidden");loadHist();}
-  if(p==="trie"){$("pageTrie").classList.remove("hidden");loadTrieCities();}
+  if(p==="hist"){ $("pageHist").classList.remove("hidden"); loadHist(); }
+  if(p==="trie"){ $("pageTrie").classList.remove("hidden"); loadTrieCities(); }
 }
 
 /* CALCUL */
 function calc(){
   const nb=+$("nb").value||0;
   const brut=+$("brut").value||0;
-  const net=Math.max(0,brut-(T[$("type").value]*nb));
+  const net=Math.max(0,brut-(TARE[$("type").value]*nb));
   $("net").textContent=net.toFixed(1);
 }
 ["input","change"].forEach(e=>{
@@ -192,11 +200,11 @@ function calc(){
 });
 
 /* SAVE */
-async function saveSafe(){
+async function save(){
   calc();
   await supabase.from("pesees").insert({
     ville:$("ville").value,
-    type:$("type").value==="FRIGO"?"F":$("type").value,
+    type:$("type").value,
     nb:+$("nb").value,
     brut:+$("brut").value,
     net:+$("net").textContent
@@ -207,7 +215,7 @@ async function saveSafe(){
 
 /* HIST */
 async function loadHist(){
-  const {data}=await supabase.from("pesees").select("*").order("created_at",{ascending:false}).limit(200);
+  const {data}=await supabase.from("pesees").select("*").order("created_at",{ascending:false}).limit(300);
   $("hist").innerHTML=(data||[]).map(r=>`
     <tr>
       <td>${new Date(r.created_at).toLocaleString()}</td>
@@ -224,7 +232,7 @@ async function loadTrieCities(){
   $("t_ville").innerHTML=`<option value="">Toutes</option>`+(data||[]).map(v=>`<option>${v.nom}</option>`).join("");
 }
 async function loadTrie(){
-  let q=supabase.from("pesees").select("created_at,ville,type,nb,net").limit(2000);
+  let q=supabase.from("pesees").select("created_at,ville,type,nb,net").limit(3000);
   if($("t_d1").value) q=q.gte("created_at",$("t_d1").value+"T00:00:00");
   if($("t_d2").value) q=q.lte("created_at",$("t_d2").value+"T23:59:59");
   if($("t_ville").value) q=q.eq("ville",$("t_ville").value);
@@ -232,7 +240,7 @@ async function loadTrie(){
   q=q.order($("t_sort").value,{ascending:$("t_dir").value==="asc"});
   const {data}=await q;
   trieRows=data||[];
-  $("trieTable").innerHTML=trieRows.map(r=>`
+  $("trieBody").innerHTML=trieRows.map(r=>`
     <tr>
       <td>${new Date(r.created_at).toLocaleString()}</td>
       <td>${r.ville}</td>
