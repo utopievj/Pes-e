@@ -245,27 +245,14 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
         <h2>Trie</h2>
 
         <div class="grid">
-          <div class="col-4">
-            <label>Nombre de PAM triés (matin)</label>
-            <select id="pamMatin">
-              <option value="0">0</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
-              <option value="7">7</option>
-              <option value="8">8</option>
-              <option value="9">9</option>
-              <option value="10">10</option>
-            </select>
-          </div>
+          <div class="col-12 center" style="min-height:auto">
+            <button class="smallBtn danger" onclick="changePam(-1)">-1 PAM</button>
 
-          <div class="col-12">
-            <div class="big">
-              PAM matin : <span id="pamMatinAff">0</span>
+            <div class="big" style="margin:0 20px">
+              <span id="pamMatinAff">0</span> PAM
             </div>
+
+            <button class="smallBtn" onclick="changePam(1)">+1 PAM</button>
           </div>
         </div>
       </div>
@@ -298,6 +285,14 @@ const num = (x)=>{ const v=Number(String(x).replace(",", ".")); return Number.is
 let currentUser = null;
 let isAdminUser = false;
 let lastHistorySource = "LIVE";
+
+/* ===== TRIE PAM MATIN (simple) ===== */
+let pamMatin = 0;
+function changePam(delta){
+  pamMatin += delta;
+  if(pamMatin < 0) pamMatin = 0;
+  $("pamMatinAff").textContent = String(pamMatin);
+}
 
 /* UI */
 function setStatus(msg){ $("status").textContent = msg || ""; }
@@ -854,7 +849,6 @@ async function buildRecap(){
     const s=new Date(y,m-1,d,0,0,0,0);
     const e=new Date(y,m-1,d+1,0,0,0,0);
 
-    let rows = [];
     try{
       const { data, error } = await supabase
         .from("pesees")
@@ -863,15 +857,13 @@ async function buildRecap(){
         .lt("created_at", e.toISOString())
         .limit(5000);
       if(error) throw error;
-      rows = data || [];
-      // + pending du jour
+
       const { start, end } = dayRangeLocal(date);
       const pendToday = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
-      const recap = recapFromRows(rows, pendToday);
+      const recap = recapFromRows(data || [], pendToday);
       renderRecapTables(recap.totalAll, recap.byCity);
       return;
     }catch{
-      // offline => cache + pending
       const { start, end } = dayRangeLocal(date);
       const cache = getHistoryCache().filter(r=> inLocalDay(r.created_at, start, end));
       const pend = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
@@ -884,13 +876,6 @@ async function buildRecap(){
     $("recapByCity").innerHTML = "";
   }
 }
-
-/* Trie (PAM matin) */
-document.addEventListener("change", (e)=>{
-  if(e.target && e.target.id === "pamMatin"){
-    $("pamMatinAff").textContent = e.target.value;
-  }
-});
 
 /* Init */
 (async ()=>{
