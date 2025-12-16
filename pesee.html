@@ -78,10 +78,7 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
         <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
-
-        <!-- ✅ AJOUT : bouton TRIE (à côté de Historique) -->
         <button class="smallBtn" onclick="show('trie')">TRIE</button>
-
         <button class="smallBtn" onclick="loadData()">🔄 Rafraîchir</button>
         <button class="smallBtn" onclick="syncPending()">⟳ SYNC (<span id="pendingCount">0</span>)</button>
         <button class="smallBtn" onclick="logout()">🚪 Déconnexion</button>
@@ -243,10 +240,34 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
         </div>
       </div>
 
-      <!-- ✅ AJOUT : PAGE TRIE (sans rien casser) -->
+      <!-- PAGE TRIE -->
       <div id="pageTrie" style="display:none">
         <h2>Trie</h2>
-        <!-- page prête : tu pourras mettre tes filtres/tri ici -->
+
+        <div class="grid">
+          <div class="col-4">
+            <label>Nombre de PAM triés (matin)</label>
+            <select id="pamMatin">
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+
+          <div class="col-12">
+            <div class="big">
+              PAM matin : <span id="pamMatinAff">0</span>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -310,8 +331,6 @@ async function checkAdmin(){
 function show(p){
   $("pagePesee").style.display = (p==="pesee") ? "block" : "none";
   $("pageHist").style.display  = (p==="hist")  ? "block" : "none";
-
-  /* ✅ AJOUT : gestion page Trie */
   $("pageTrie").style.display  = (p==="trie")  ? "block" : "none";
 
   if(p==="hist"){
@@ -830,6 +849,7 @@ async function buildRecap(){
     const date = $("recapDate").value || ymdToday();
     $("recapDate").value = date;
 
+    // try live
     const [y,m,d]=date.split("-").map(Number);
     const s=new Date(y,m-1,d,0,0,0,0);
     const e=new Date(y,m-1,d+1,0,0,0,0);
@@ -844,12 +864,14 @@ async function buildRecap(){
         .limit(5000);
       if(error) throw error;
       rows = data || [];
+      // + pending du jour
       const { start, end } = dayRangeLocal(date);
       const pendToday = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
       const recap = recapFromRows(rows, pendToday);
       renderRecapTables(recap.totalAll, recap.byCity);
       return;
     }catch{
+      // offline => cache + pending
       const { start, end } = dayRangeLocal(date);
       const cache = getHistoryCache().filter(r=> inLocalDay(r.created_at, start, end));
       const pend = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
@@ -862,6 +884,13 @@ async function buildRecap(){
     $("recapByCity").innerHTML = "";
   }
 }
+
+/* Trie (PAM matin) */
+document.addEventListener("change", (e)=>{
+  if(e.target && e.target.id === "pamMatin"){
+    $("pamMatinAff").textContent = e.target.value;
+  }
+});
 
 /* Init */
 (async ()=>{
