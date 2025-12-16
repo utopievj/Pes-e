@@ -79,7 +79,6 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
         <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
         <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
         <button class="smallBtn" onclick="show('trie')">TRIE</button>
-
         <button class="smallBtn" onclick="loadData()">🔄 Rafraîchir</button>
         <button class="smallBtn" onclick="syncPending()">⟳ SYNC (<span id="pendingCount">0</span>)</button>
         <button class="smallBtn" onclick="logout()">🚪 Déconnexion</button>
@@ -130,6 +129,30 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
 
           <div class="col-12">
             <button onclick="saveSafe()">ENREGISTRER</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE TRIE -->
+      <div id="pageTrie" style="display:none">
+        <h2>Trie</h2>
+
+        <div class="grid">
+          <div class="col-4">
+            <label>Nombre (PAM trié)</label>
+            <select id="trieNb"></select>
+          </div>
+
+          <div class="col-8" style="display:flex;align-items:end;gap:10px;flex-wrap:wrap">
+            <button class="smallBtn" onclick="saveTrie(+1)">+1</button>
+            <button class="smallBtn danger" onclick="saveTrie(-1)">-1</button>
+
+            <button class="smallBtn" onclick="saveTrie(+num($('trieNb').value))">+ Ajouter</button>
+            <button class="smallBtn danger" onclick="saveTrie(-num($('trieNb').value))">- Retirer</button>
+          </div>
+
+          <div class="col-12">
+            <div class="badge">Astuce : chaque clic s’enregistre et apparaît dans Historique → Trie.</div>
           </div>
         </div>
       </div>
@@ -206,27 +229,6 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
           </table>
         </div>
 
-        <!-- ✅ NOUVEAU : Catégorie TRIE -->
-        <h4 style="margin-top:14px">Trie (PAM trié)</h4>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr><th class="right">TOTAL PAM trié</th></tr>
-            </thead>
-            <tbody id="recapTrieAll"></tbody>
-          </table>
-        </div>
-
-        <h4 style="margin-top:14px">Trie (PAM trié) – Par ville</h4>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr><th>Ville</th><th class="right">PAM trié</th></tr>
-            </thead>
-            <tbody id="recapTrieByCity"></tbody>
-          </table>
-        </div>
-
         <hr>
 
         <h3>En attente (hors-ligne)</h3>
@@ -242,13 +244,7 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
 
         <hr>
 
-        <h3>Historique (mélangé : Supabase + Cache + En attente)</h3>
-        <div class="muted" style="margin-bottom:6px">
-          <span class="tag tagOk">LIVE</span> = Supabase en direct &nbsp;
-          <span class="tag tagCache">CACHE</span> = dernière copie locale &nbsp;
-          <span class="tag tagWait">ATTENTE</span> = pas encore envoyé
-        </div>
-
+        <h3>Historique – Pesées</h3>
         <div class="tableWrap">
           <table>
             <thead>
@@ -257,26 +253,26 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
                 <th id="thAdmin" style="display:none">Admin</th>
               </tr>
             </thead>
-            <tbody id="histMix"></tbody>
+            <tbody id="histPesee"></tbody>
           </table>
         </div>
-      </div>
 
-      <!-- PAGE TRIE -->
-      <div id="pageTrie" style="display:none">
-        <h2>Trie</h2>
+        <hr>
 
-        <div class="grid">
-          <div class="col-6">
-            <label>Nombre de PAM trié</label>
-            <select id="trieNb"></select>
-          </div>
+        <h3>Historique – Trie (PAM trié)</h3>
+        <div class="badge">Total PAM trié du jour : <b><span id="totalTrieJour">0</span></b></div>
 
-          <div class="col-6" style="display:flex;gap:10px;align-items:end">
-            <button style="flex:1" onclick="saveTrie(+1)">＋</button>
-            <button class="danger" style="flex:1" onclick="saveTrie(-1)">－</button>
-          </div>
+        <div class="tableWrap" style="margin-top:10px">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th><th>Type</th><th class="right">Nb</th><th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="histTrie"></tbody>
+          </table>
         </div>
+
       </div>
 
     </div>
@@ -294,7 +290,6 @@ const supabase = window.supabase.createClient(
 const T = { PAM:59, ASL:45, ABJ:43, FRIGO:0, HF:0 };
 const A = { PAM:"PAM", ASL:"ASL", ABJ:"ABJ", FRIGO:"F", HF:"HF" };
 const TYPES = ["PAM","ASL","ABJ","F","HF"];
-const TRIE_TYPE = "PAM_TRIE";
 
 /* OFFLINE KEYS */
 const PENDING_KEY = "pesees_pending_v4";
@@ -345,12 +340,32 @@ function show(p){
 
   if(p==="hist"){
     if(!$("recapDate").value) $("recapDate").value = ymdToday();
+    $("recapDate").onchange = ()=>{ buildRecap(); renderMixedHistory(); };
+
     buildRecap();
     loadCities();
     loadData();
     renderPending();
     renderMixedHistory();
   }
+
+  if(p==="trie"){
+    initTrieSelect();
+  }
+}
+
+/* Trie select */
+function initTrieSelect(){
+  const sel = $("trieNb");
+  if(!sel) return;
+  if(sel.options.length) return;
+  for(let i=1;i<=20;i++){
+    const o=document.createElement("option");
+    o.value=String(i);
+    o.textContent=String(i);
+    sel.appendChild(o);
+  }
+  sel.value="1";
 }
 
 /* Calcul net */
@@ -392,7 +407,7 @@ function renderPending(){
   const tb = $("pendingTable");
   tb.innerHTML = "";
   if(!arr.length){
-    tb.innerHTML = `<tr><td colspan="6" class="muted">Aucune ligne en attente</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="6">Aucune ligne en attente</td></tr>`;
     return;
   }
   arr.forEach(x=>{
@@ -431,7 +446,7 @@ function getHistoryMeta(){
   catch{ return null; }
 }
 
-/* ---- MIXED RENDER ---- */
+/* ---- MIXED RENDER (séparé Pesées / Trie) ---- */
 function renderMixedHistory(){
   const pending = getPending().map(p=>({
     id: null,
@@ -452,39 +467,72 @@ function renderMixedHistory(){
   const all = [...pending, ...cached]
     .sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
 
-  const tb = $("histMix");
-  tb.innerHTML = "";
+  const tbP = $("histPesee");
+  const tbT = $("histTrie");
+  if(!tbP || !tbT) return;
+
+  tbP.innerHTML = "";
+  tbT.innerHTML = "";
 
   if(!all.length){
-    tb.innerHTML = `<tr><td colspan="${isAdminUser?7:6}" class="muted">Aucune donnée</td></tr>`;
+    tbP.innerHTML = `<tr><td colspan="${isAdminUser?7:6}">Aucune donnée</td></tr>`;
+    tbT.innerHTML = `<tr><td colspan="4">Aucune donnée</td></tr>`;
+    if($("totalTrieJour")) $("totalTrieJour").textContent = "0";
     return;
   }
 
+  const date = ($("recapDate")?.value) || ymdToday();
+  const { start, end } = dayRangeLocal(date);
+  let totalTrie = 0;
+
   all.forEach(r=>{
-    const srcTag =
-      r._source==="ATTENTE" ? `<span class="tag tagWait">ATTENTE</span>` :
-      (lastHistorySource==="LIVE" ? `<span class="tag tagOk">LIVE</span>` : `<span class="tag tagCache">CACHE</span>`);
+    const dateHeure = new Date(r.created_at).toLocaleString();
+    const src = r._source;
 
-    const adminCell = isAdminUser
-      ? (r._source==="ATTENTE"
-          ? `<td class="muted">—</td>`
-          : `<td><button class="smallBtn danger" onclick="deleteRow(${r.id})">Suppr</button></td>`)
-      : "";
+    const isTrie = (r.type === "PAM_TRIE");
 
-    tb.innerHTML += `
-      <tr>
-        <td>${new Date(r.created_at).toLocaleString()}</td>
-        <td>${r.ville}</td>
-        <td>${r.type}</td>
-        <td class="right">${r.nb}</td>
-        <td class="right">${r.net}</td>
-        <td>${srcTag}</td>
-        ${adminCell}
-      </tr>`;
+    if(isTrie && inLocalDay(r.created_at, start, end)){
+      totalTrie += num(r.nb);
+    }
+
+    if(isTrie){
+      tbT.innerHTML += `
+        <tr>
+          <td>${dateHeure}</td>
+          <td>PAM TRIÉ</td>
+          <td class="right">${r.nb}</td>
+          <td>${src}</td>
+        </tr>
+      `;
+    } else {
+      const adminCell = isAdminUser
+        ? (src==="ATTENTE"
+            ? `<td>—</td>`
+            : `<td><button class="smallBtn danger" onclick="deleteRow(${r.id})">Suppr</button></td>`)
+        : "";
+
+      tbP.innerHTML += `
+        <tr>
+          <td>${dateHeure}</td>
+          <td>${r.ville}</td>
+          <td>${r.type}</td>
+          <td class="right">${r.nb}</td>
+          <td class="right">${r.net}</td>
+          <td>${src}</td>
+          ${adminCell}
+        </tr>
+      `;
+    }
   });
+
+  if($("totalTrieJour")) $("totalTrieJour").textContent = String(totalTrie);
+
+  if(!tbT.innerHTML.trim()){
+    tbT.innerHTML = `<tr><td colspan="4">Aucun PAM trié</td></tr>`;
+  }
 }
 
-/* ✅ SYNC pending -> Supabase */
+/* ✅ SYNC pending -> Supabase (anti-doublon via upsert client_id) */
 async function syncPending(){
   const arr = getPending();
   $("pendingCount").textContent = String(arr.length);
@@ -604,7 +652,7 @@ async function loadCities(){
     const tb = $("citiesAdmin");
     tb.innerHTML = "";
     if(!isAdminUser){
-      tb.innerHTML = `<tr><td colspan="2" class="muted">Admin uniquement</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="2">Admin uniquement</td></tr>`;
       return;
     }
     (data||[]).forEach(v=>{
@@ -616,7 +664,7 @@ async function loadCities(){
           </td>
         </tr>`;
     });
-    if(!(data||[]).length) tb.innerHTML = `<tr><td colspan="2" class="muted">Aucune ville</td></tr>`;
+    if(!(data||[]).length) tb.innerHTML = `<tr><td colspan="2">Aucune ville</td></tr>`;
   }catch(e){
     setStatus("❌ VILLES: " + (e?.message || String(e)));
   }
@@ -652,7 +700,7 @@ async function deleteCity(id, nom){
   }
 }
 
-/* ✅ Enregistrer : upsert sinon pending */
+/* ✅ Enregistrer Pesée : upsert avec client_id (anti-doublon). Sinon pending. */
 async function saveSafe(){
   try{
     calc();
@@ -687,6 +735,7 @@ async function saveSafe(){
       net: r1(net)
     };
 
+    setStatus("Insertion…");
     const { error } = await supabase
       .from("pesees")
       .upsert(payload, { onConflict: "client_id" });
@@ -696,6 +745,7 @@ async function saveSafe(){
     $("brut").value = "";
     calc();
 
+    setStatus("✅ Enregistré");
     await loadData();
     await buildRecap();
     renderMixedHistory();
@@ -722,6 +772,7 @@ async function saveSafe(){
     $("brut").value = "";
     calc();
 
+    setStatus("⚠️ Hors-ligne / erreur : enregistré EN ATTENTE. Clique SYNC.");
     renderPending();
     renderMixedHistory();
     buildRecap();
@@ -729,23 +780,18 @@ async function saveSafe(){
   }
 }
 
-/* ✅ TRIE : + / - automatique */
-async function saveTrie(sign){
+/* ✅ Enregistrer TRIE (auto) : type PAM_TRIE, ville TRIE */
+async function saveTrie(delta){
+  const d = Number(delta);
+  if(!Number.isFinite(d) || d===0) return;
+
   try{
-    const ville = ($("ville").value || "").trim();
-    const qty = Number($("trieNb").value) || 0;
-
-    if(!ville || ville==="—") return alert("Choisis une ville dans PESÉE.");
-    if(qty<=0) return alert("Choisis un nombre.");
-
-    const nb = sign * qty;
     const client_id = "t_" + Date.now() + "_" + Math.random().toString(16).slice(2);
-
     const payload = {
       client_id,
-      ville,
-      type: TRIE_TYPE,
-      nb: nb,
+      ville: "TRIE",
+      type: "PAM_TRIE",
+      nb: d,
       brut: 0,
       tare: 0,
       net: 0
@@ -758,32 +804,21 @@ async function saveTrie(sign){
     if(error) throw error;
 
     await loadData();
-    await buildRecap();
-    renderPending();
     renderMixedHistory();
   }catch(e){
-    const ville = ($("ville").value || "").trim();
-    const qty = Number($("trieNb").value) || 0;
-    if(!ville || ville==="—") return alert("Choisis une ville dans PESÉE.");
-    if(qty<=0) return alert("Choisis un nombre.");
-
-    const nb = sign * qty;
     const client_id = "t_" + Date.now() + "_" + Math.random().toString(16).slice(2);
-
     addPending({
       client_id,
       local_created_at: Date.now(),
-      ville,
-      type: TRIE_TYPE,
-      nb: nb,
+      ville: "TRIE",
+      type: "PAM_TRIE",
+      nb: d,
       brut: 0,
       tare: 0,
       net: 0
     });
-
     renderPending();
     renderMixedHistory();
-    buildRecap();
   }
 }
 
@@ -805,6 +840,7 @@ async function loadData(){
   }catch(e){
     lastHistorySource = "CACHE";
     setStoreBadge();
+    setStatus("⚠️ Supabase indisponible : affichage depuis le CACHE local.");
     renderMixedHistory();
   }
 }
@@ -814,23 +850,31 @@ async function deleteRow(id){
   if(!isAdminUser) return alert("Admin uniquement");
   if(!confirm("Supprimer cette ligne ?")) return;
   try{
+    setStatus("Suppression…");
     const { error } = await supabase.from("pesees").delete().eq("id", id);
     if(error) throw error;
+    setStatus("✅ Supprimé");
     await loadData();
     await buildRecap();
     renderMixedHistory();
-  }catch(e){}
+  }catch(e){
+    setStatus("❌ " + (e?.message || String(e)));
+  }
 }
 async function clearAll(){
   if(!isAdminUser) return alert("Admin uniquement");
   if(!confirm("⚠️ Vider TOUT l’historique ?")) return;
   try{
+    setStatus("Suppression totale…");
     const { error } = await supabase.from("pesees").delete().gte("id", 0);
     if(error) throw error;
+    setStatus("✅ Historique vidé");
     await loadData();
     await buildRecap();
     renderMixedHistory();
-  }catch(e){}
+  }catch(e){
+    setStatus("❌ " + (e?.message || String(e)));
+  }
 }
 
 /* --- RÉCAP : live sinon cache+pending --- */
@@ -841,7 +885,7 @@ function ymdToday(){
   const da=String(d.getDate()).padStart(2,"0");
   return `${y}-${m}-${da}`;
 }
-function recapToday(){ $("recapDate").value = ymdToday(); buildRecap(); }
+function recapToday(){ $("recapDate").value = ymdToday(); buildRecap(); renderMixedHistory(); }
 function dayRangeLocal(ymd){
   const [y,m,d]=ymd.split("-").map(Number);
   const start=new Date(y,m-1,d,0,0,0,0).getTime();
@@ -852,15 +896,10 @@ function inLocalDay(isoOrMs, start, end){
   const t = typeof isoOrMs==="number" ? isoOrMs : new Date(isoOrMs).getTime();
   return t>=start && t<end;
 }
-
 function recapFromRows(rows, pendingRows){
   const totalAll = {PAM:0,ASL:0,ABJ:0,F:0,HF:0};
   const byCity = {};
-
-  let trieAll = 0;
-  const trieByCity = {};
-
-  const addNet = (ville, type, net)=>{
+  const add = (ville, type, net)=>{
     const t = String(type||"").toUpperCase();
     if(!TYPES.includes(t)) return;
     const n = num(net);
@@ -869,27 +908,10 @@ function recapFromRows(rows, pendingRows){
     if(!byCity[v]) byCity[v]={PAM:0,ASL:0,ABJ:0,F:0,HF:0};
     byCity[v][t]+=n;
   };
-
-  const addTrie = (ville, type, nb)=>{
-    if(String(type||"").toUpperCase() !== TRIE_TYPE) return;
-    const v = ville || "—";
-    const n = Number(nb) || 0;
-    trieAll += n;
-    trieByCity[v] = (trieByCity[v] || 0) + n;
-  };
-
-  (rows||[]).forEach(r=>{
-    addNet(r.ville, r.type, r.net);
-    addTrie(r.ville, r.type, r.nb);
-  });
-  (pendingRows||[]).forEach(p=>{
-    addNet(p.ville, p.type, p.net);
-    addTrie(p.ville, p.type, p.nb);
-  });
-
-  return { totalAll, byCity, trieAll, trieByCity };
+  (rows||[]).forEach(r=> add(r.ville, r.type, r.net));
+  (pendingRows||[]).forEach(p=> add(p.ville, p.type, p.net));
+  return { totalAll, byCity };
 }
-
 function renderRecapTables(totalAll, byCity){
   const sumAll = TYPES.reduce((s,k)=>s+totalAll[k],0);
   $("recapAll").innerHTML = `
@@ -901,10 +923,9 @@ function renderRecapTables(totalAll, byCity){
       <td class="right">${r1(totalAll.HF)}</td>
       <td class="right"><b>${r1(sumAll)}</b></td>
     </tr>`;
-
   const villes = Object.keys(byCity).sort((a,b)=>a.localeCompare(b,"fr"));
   if(!villes.length){
-    $("recapByCity").innerHTML = `<tr><td colspan="7" class="muted">Aucune donnée</td></tr>`;
+    $("recapByCity").innerHTML = `<tr><td colspan="7">Aucune donnée</td></tr>`;
     return;
   }
   $("recapByCity").innerHTML = villes.map(v=>{
@@ -922,26 +943,6 @@ function renderRecapTables(totalAll, byCity){
       </tr>`;
   }).join("");
 }
-
-function renderTrieTables(trieAll, trieByCity){
-  $("recapTrieAll").innerHTML = `
-    <tr>
-      <td class="right"><b>${trieAll}</b></td>
-    </tr>`;
-
-  const villes = Object.keys(trieByCity).sort((a,b)=>a.localeCompare(b,"fr"));
-  if(!villes.length){
-    $("recapTrieByCity").innerHTML = `<tr><td colspan="2" class="muted">Aucune donnée</td></tr>`;
-    return;
-  }
-  $("recapTrieByCity").innerHTML = villes.map(v=>`
-    <tr>
-      <td>${v}</td>
-      <td class="right"><b>${trieByCity[v] || 0}</b></td>
-    </tr>
-  `).join("");
-}
-
 async function buildRecap(){
   try{
     const date = $("recapDate").value || ymdToday();
@@ -954,7 +955,7 @@ async function buildRecap(){
     try{
       const { data, error } = await supabase
         .from("pesees")
-        .select("ville,type,net,nb,created_at")  /* ✅ nb ajouté */
+        .select("ville,type,net,created_at")
         .gte("created_at", s.toISOString())
         .lt("created_at", e.toISOString())
         .limit(5000);
@@ -962,47 +963,30 @@ async function buildRecap(){
 
       const { start, end } = dayRangeLocal(date);
       const pendToday = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
-
       const recap = recapFromRows(data || [], pendToday);
       renderRecapTables(recap.totalAll, recap.byCity);
-      renderTrieTables(recap.trieAll, recap.trieByCity);
       return;
     }catch{
       const { start, end } = dayRangeLocal(date);
       const cache = getHistoryCache().filter(r=> inLocalDay(r.created_at, start, end));
       const pend = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
-
       const recap = recapFromRows(cache, pend);
       renderRecapTables(recap.totalAll, recap.byCity);
-      renderTrieTables(recap.trieAll, recap.trieByCity);
       return;
     }
   }catch(e){
     $("recapAll").innerHTML = `<tr><td colspan="6">Erreur: ${(e?.message||String(e))}</td></tr>`;
     $("recapByCity").innerHTML = "";
-    $("recapTrieAll").innerHTML = `<tr><td>—</td></tr>`;
-    $("recapTrieByCity").innerHTML = "";
   }
 }
 
 /* Init */
 (async ()=>{
-  // Remplit la liste 1..50 pour TRIE
-  const selTrie = $("trieNb");
-  if(selTrie){
-    selTrie.innerHTML = "";
-    for(let i=1;i<=50;i++){
-      const o=document.createElement("option");
-      o.value=String(i);
-      o.textContent=String(i);
-      selTrie.appendChild(o);
-    }
-  }
-
   refreshNetwork();
   setPending(getPending());
   renderPending();
   calc();
+  initTrieSelect();
 
   const meta = getHistoryMeta();
   lastHistorySource = meta?.source || "CACHE";
