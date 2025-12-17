@@ -1227,10 +1227,10 @@ function loadTrieAll(){
   }
 })();
 
-/* Service worker (optionnel) */
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("/Pes-e/sw.js").catch(()=>{});
-}
+// ✅ TEMPORAIRE : désactive le service worker (sinon les autres tel gardent l'ancien code)
+// if ("serviceWorker" in navigator) {
+//   navigator.serviceWorker.register("/Pes-e/sw.js").catch(()=>{});
+// }
 </script>
 </body>
 </html>
@@ -1281,9 +1281,10 @@ if("serviceWorker" in navigator){
 })();
 
 /* Service worker (OK) */
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("/Pes-e/sw.js");
-}
+// ✅ TEMPORAIRE : désactive le service worker (sinon les autres tel gardent l'ancien code)
+// if ("serviceWorker" in navigator) {
+//   navigator.serviceWorker.register("/Pes-e/sw.js").catch(()=>{});
+// }
 </script>
 </body>
 </html>
