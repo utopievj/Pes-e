@@ -1,1290 +1,159 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Pesée</title>
+  <meta charset="UTF-8" />
+  <title>Sirmet – Connexion</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<!-- PWA -->
-<link rel="manifest" href="/Pes-e/manifest.json">
-<meta name="theme-color" content="#b22222">
+  <!-- Supabase -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f1115;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
 
-<style>
-body{margin:0;font-family:system-ui;background:#0b0c10;color:#e9eef6}
-.wrap{max-width:980px;margin:auto;padding:16px}
-.card{background:#12141b;border:1px solid #222634;border-radius:16px;padding:16px}
-label{display:block;margin:8px 0 4px;font-size:12px;color:#a8b3d6}
-input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #262b3a;background:#0f1118;color:#fff;box-sizing:border-box}
-button{padding:14px;border-radius:12px;border:1px solid #7a1f1f;background:#b22222;color:#fff;font-weight:800;cursor:pointer}
-button:hover{background:#d32f2f}
-.smallBtn{padding:10px 12px;font-size:12px}
-.danger{background:#8b0000;border-color:#5c0000}
-.grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr)}
-.col-4{grid-column:span 4}.col-3{grid-column:span 3}.col-2{grid-column:span 2}.col-6{grid-column:span 6}.col-12{grid-column:span 12}
-@media(max-width:820px){.col-4,.col-3,.col-2,.col-6{grid-column:span 12}}
-.big{font-size:34px;font-weight:900;margin:8px 0}
-.badge{display:inline-block;padding:6px 10px;border:1px solid #222634;border-radius:999px;font-size:12px;color:#a8b3d6}
-.tableWrap{overflow:auto;border:1px solid #222634;border-radius:12px;margin-top:10px}
-table{width:100%;border-collapse:collapse}
-th,td{padding:8px;border-bottom:1px solid #222634}
-th{font-size:12px;color:#a8b3d6;white-space:nowrap;text-align:left}
-.right{text-align:right}
-.center{min-height:90vh;display:flex;align-items:center;justify-content:center}
-.max420{max-width:420px;width:100%}
-#status{margin:10px 0;font-size:12px;white-space:pre-wrap;color:#ffd27a}
-.muted{color:#a8b3d6;font-size:12px}
-hr{border:0;border-top:1px solid #222634;margin:14px 0}
-.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid #222634;color:#a8b3d6}
-.tagOk{border-color:#1f6f3a;color:#a7f3c6}
-.tagWait{border-color:#7a1f1f;color:#ffd27a}
-.tagCache{border-color:#3a4a7a;color:#b7c6ff}
+    .card {
+      width: 100%;
+      max-width: 360px;
+      background: #151821;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.6);
+    }
 
-/* Clean visuel (tu peux remettre si tu veux) */
-label, th, .badge { color:#ffffff !important; }
-</style>
+    h1 {
+      margin-top: 0;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-size: 14px;
+      opacity: .8;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-top: 6px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 18px;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: #c62828;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .6;
+    }
+
+    .error {
+      margin-top: 15px;
+      color: #ff6b6b;
+      text-align: center;
+      min-height: 20px;
+    }
+  </style>
 </head>
 
 <body>
-
-<!-- LOGIN -->
-<div id="loginScreen" class="center">
-  <div class="card max420">
-    <h2 style="margin-top:0">Connexion</h2>
+  <div class="card">
+    <h1>Connexion</h1>
 
     <label>Email</label>
-    <input id="email" type="email" autocomplete="username">
+    <input id="email" type="email" />
 
     <label>Mot de passe</label>
-    <input id="password" type="password" autocomplete="current-password">
+    <input id="password" type="password" />
 
-    <div style="margin-top:12px;display:grid;gap:10px">
-      <button onclick="login()">SE CONNECTER</button>
-      <button class="smallBtn danger" onclick="resetCache()">RESET CACHE (si ça bug sur un autre tel)</button>
-    </div>
+    <button id="loginBtn">SE CONNECTER</button>
 
-    <!-- ✅ message d'erreur visible -->
-    <div id="loginMsg" style="margin-top:10px;font-size:13px;white-space:pre-wrap;color:#ffd27a"></div>
+    <div class="error" id="error"></div>
   </div>
-</div>
 
-<!-- APP -->
-<div id="app" style="display:none">
-  <div class="wrap">
-    <div class="card">
-
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
-        <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
-        <button class="smallBtn" onclick="show('trie')">TRIE</button>
-        <button class="smallBtn" onclick="loadData()">🔄 Rafraîchir</button>
-        <button class="smallBtn" onclick="syncPending()">⟳ SYNC (<span id="pendingCount">0</span>)</button>
-        <button class="smallBtn danger" onclick="resetCache()">🧹 RESET CACHE</button>
-        <button class="smallBtn" onclick="logout()">🚪 Déconnexion</button>
-        <span class="badge" id="badgeUser">Connecté : —</span>
-        <span class="badge" id="badgeNet">Réseau : —</span>
-        <span class="badge" id="badgeAdmin">Utilisateur</span>
-        <span class="badge" id="badgeStore">Données : —</span>
-      </div>
-
-      <div id="status">Prêt.</div>
-
-      <!-- PAGE PESÉE -->
-      <div id="pagePesee">
-        <h2>Pesée</h2>
-
-        <div class="grid">
-          <div class="col-4">
-            <label>Ville</label>
-            <select id="ville"></select>
-          </div>
-
-          <div class="col-4">
-            <label>Type</label>
-            <select id="type">
-              <option value="PAM">PAM</option>
-              <option value="ASL">ASL</option>
-              <option value="ABJ">ABJ</option>
-              <option value="FRIGO">Frigo</option>
-              <option value="HF">Hors froid</option>
-            </select>
-          </div>
-
-          <div class="col-2">
-            <label>Nb</label>
-            <!-- ✅ clavier chiffres + quantité -->
-            <input id="nb" type="number" inputmode="numeric" pattern="[0-9]*" min="1" step="1" value="1">
-          </div>
-
-          <div class="col-2">
-            <label>Brut (kg)</label>
-            <input id="brut" type="number" inputmode="decimal" step="0.1" placeholder="Ex: 120.5">
-          </div>
-
-          <div class="col-12">
-            <div class="big">Net : <span id="net">0</span> kg</div>
-          </div>
-
-          <div class="col-12">
-            <button onclick="saveSafe()">ENREGISTRER</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- PAGE HIST -->
-      <div id="pageHist" style="display:none">
-        <h2>Historique</h2>
-
-        <!-- ADMIN PANEL -->
-        <div id="adminPanel" style="display:none">
-          <hr>
-          <h3>Admin – Villes</h3>
-
-          <div class="grid">
-            <div class="col-6">
-              <label>Ajouter une ville</label>
-              <input id="newCity" type="text" placeholder="Ex: Toulouse">
-            </div>
-            <div class="col-6" style="display:flex;align-items:end;gap:8px;flex-wrap:wrap">
-              <button class="smallBtn" onclick="addCity()">➕ Ajouter</button>
-              <button class="smallBtn" onclick="loadCities()">🔄 Recharger</button>
-            </div>
-            <div class="col-12">
-              <div class="tableWrap">
-                <table>
-                  <thead><tr><th>Ville</th><th class="right">Action</th></tr></thead>
-                  <tbody id="citiesAdmin"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <hr>
-          <h3>Admin – Historique</h3>
-          <button class="smallBtn danger" onclick="clearAll()">🧹 Vider tout l’historique</button>
-        </div>
-
-        <hr>
-
-        <!-- Récap -->
-        <h3>Récap du jour</h3>
-        <div class="grid">
-          <div class="col-4">
-            <label>Date</label>
-            <input id="recapDate" type="date">
-          </div>
-          <div class="col-2" style="display:flex;align-items:end;gap:8px;flex-wrap:wrap">
-            <button class="smallBtn" onclick="recapToday()">Aujourd’hui</button>
-            <button class="smallBtn" onclick="buildRecap()">Afficher</button>
-          </div>
-        </div>
-
-        <h4>Total (toutes villes)</h4>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr><th class="right">PAM</th><th class="right">ASL</th><th class="right">ABJ</th><th class="right">F</th><th class="right">HF</th><th class="right">TOTAL</th></tr>
-            </thead>
-            <tbody id="recapAll"></tbody>
-          </table>
-        </div>
-
-        <h4 style="margin-top:14px">Par ville</h4>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr><th>Ville</th><th class="right">PAM</th><th class="right">ASL</th><th class="right">ABJ</th><th class="right">F</th><th class="right">HF</th><th class="right">TOTAL</th></tr>
-            </thead>
-            <tbody id="recapByCity"></tbody>
-          </table>
-        </div>
-
-        <hr>
-
-        <h3>En attente (hors-ligne)</h3>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr><th>Date</th><th>Ville</th><th>Type</th><th class="right">Nb</th><th class="right">Net</th><th class="right">Action</th></tr>
-            </thead>
-            <tbody id="pendingTable"></tbody>
-          </table>
-        </div>
-
-        <hr>
-
-        <h3>Historique (avec opérateur)</h3>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th><th>Ville</th><th>Type</th><th class="right">Nb</th><th class="right">Net</th><th>Opérateur</th><th>Source</th>
-                <th id="thAdmin" style="display:none">Admin</th>
-              </tr>
-            </thead>
-            <tbody id="histMix"></tbody>
-          </table>
-        </div>
-
-        <hr>
-        <h2>Trie (résumé dans Historique)</h2>
-
-        <h3>PAM trié</h3>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Jour</th><th class="right">Total</th></tr></thead>
-            <tbody id="pamTrieTotalsHist"></tbody>
-          </table>
-        </div>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Date/Heure</th><th class="right">+ / -</th><th>Source</th></tr></thead>
-            <tbody id="pamTrieHistHist"></tbody>
-          </table>
-        </div>
-
-        <h3 style="margin-top:18px">ASL trié</h3>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Jour</th><th class="right">Total</th></tr></thead>
-            <tbody id="aslTrieTotalsHist"></tbody>
-          </table>
-        </div>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Date/Heure</th><th class="right">+ / -</th><th>Source</th></tr></thead>
-            <tbody id="aslTrieHistHist"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- PAGE TRIE -->
-      <div id="pageTrie" style="display:none">
-        <h2>Trie</h2>
-
-        <h3>PAM trié (+1 / -1)</h3>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-          <button onclick="addPamTrie(+1)">+1 PAM trié</button>
-          <button class="danger" onclick="addPamTrie(-1)">-1 PAM trié</button>
-          <button class="smallBtn" onclick="syncPamTriePending()">⟳ SYNC PAM (<span id="pamTriePendingCount">0</span>)</button>
-          <button class="smallBtn" onclick="loadTrieAll()">🔄 Rafraîchir</button>
-        </div>
-
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Jour</th><th class="right">Total</th></tr></thead>
-            <tbody id="pamTrieTotals"></tbody>
-          </table>
-        </div>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Date/Heure</th><th class="right">+ / -</th><th>Source</th></tr></thead>
-            <tbody id="pamTrieHist"></tbody>
-          </table>
-        </div>
-
-        <hr>
-
-        <h3>ASL trié (+1 / -1)</h3>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-          <button onclick="addAslTrie(+1)">+1 ASL trié</button>
-          <button class="danger" onclick="addAslTrie(-1)">-1 ASL trié</button>
-          <button class="smallBtn" onclick="syncAslTriePending()">⟳ SYNC ASL (<span id="aslTriePendingCount">0</span>)</button>
-          <button class="smallBtn" onclick="loadTrieAll()">🔄 Rafraîchir</button>
-        </div>
-
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Jour</th><th class="right">Total</th></tr></thead>
-            <tbody id="aslTrieTotals"></tbody>
-          </table>
-        </div>
-        <div class="tableWrap">
-          <table>
-            <thead><tr><th>Date/Heure</th><th class="right">+ / -</th><th>Source</th></tr></thead>
-            <tbody id="aslTrieHist"></tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<script>
-/* ✅ SUPABASE */
-const supabase = window.supabase.createClient(
-  "https://dzfokswsmkvhjhziqakj.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0"
-);
-
-/* TARES + TYPES */
-const T = { PAM:59, ASL:45, ABJ:43, FRIGO:0, HF:0 };
-const A = { PAM:"PAM", ASL:"ASL", ABJ:"ABJ", FRIGO:"F", HF:"HF" };
-const TYPES = ["PAM","ASL","ABJ","F","HF"];
-
-/* OFFLINE KEYS */
-const PENDING_KEY = "pesees_pending_v4";
-const HISTORY_CACHE_KEY = "pesees_history_cache_v2";      // ⬅️ v2 pour éviter conflit ancien cache
-const CACHE_META_KEY = "pesees_history_cache_meta_v2";    // ⬅️ v2 pour éviter conflit ancien cache
-
-const $ = (id)=>document.getElementById(id);
-const r1 = (x)=>Math.round(x*10)/10;
-const num = (x)=>{ const v=Number(String(x).replace(",", ".")); return Number.isFinite(v)?v:0; };
-
-let currentUser = null;
-let isAdminUser = false;
-let lastHistorySource = "LIVE";
-
-/* UI */
-function setStatus(msg){ $("status").textContent = msg || ""; }
-function setLoginMsg(msg){ $("loginMsg").textContent = msg || ""; }
-function refreshNetwork(){
-  $("badgeNet").textContent = "Réseau : " + (navigator.onLine ? "OK" : "HORS-LIGNE");
-}
-function setStoreBadge(){
-  const meta = getHistoryMeta();
-  const info = meta?.updatedAt ? new Date(meta.updatedAt).toLocaleString() : "—";
-  $("badgeStore").textContent = `Données : ${lastHistorySource} (${info})`;
-}
-window.addEventListener("online", ()=>{ refreshNetwork(); syncPending(); syncPamTriePending(); syncAslTriePending(); });
-window.addEventListener("offline", refreshNetwork);
-
-/* Admin UI */
-function setAdminUI(){
-  $("badgeAdmin").textContent = isAdminUser ? "ADMIN" : "Utilisateur";
-  $("adminPanel").style.display = isAdminUser ? "block" : "none";
-  $("thAdmin").style.display = isAdminUser ? "table-cell" : "none";
-}
-
-/* Admin check */
-async function checkAdmin(){
-  const { data, error } = await supabase.rpc("is_admin");
-  if(error) throw error;
-  return !!data;
-}
-
-/* Pages */
-function show(p){
-  $("pagePesee").style.display = (p==="pesee") ? "block" : "none";
-  $("pageHist").style.display  = (p==="hist")  ? "block" : "none";
-  $("pageTrie").style.display  = (p==="trie")  ? "block" : "none";
-
-  if(p==="hist"){
-    if(!$("recapDate").value) $("recapDate").value = ymdToday();
-    buildRecap();
-    loadCities();
-    loadData();
-    renderPending();
-    renderMixedHistory();
-    loadTrieAll();
-  }
-  if(p==="trie"){
-    loadTrieAll();
-  }
-}
-
-/* Calcul net */
-function calc(){
-  const nb = Math.max(1, Math.floor(num($("nb").value)));
-  $("nb").value = nb;
-  const brut = num($("brut").value);
-  const tare = (T[$("type").value] || 0) * nb;
-  const net = Math.max(0, brut - tare);
-  $("net").textContent = r1(net);
-}
-["input","change"].forEach(ev=>{
-  $("type").addEventListener(ev, calc);
-  $("nb").addEventListener(ev, calc);
-  $("brut").addEventListener(ev, calc);
-});
-
-/* ---- OFFLINE PENDING ---- */
-function getPending(){
-  try{ return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); }
-  catch{ return []; }
-}
-function setPending(arr){
-  localStorage.setItem(PENDING_KEY, JSON.stringify(arr));
-  $("pendingCount").textContent = String(arr.length);
-}
-function addPending(row){
-  const arr = getPending();
-  arr.unshift(row);
-  setPending(arr);
-}
-function removePending(client_id){
-  const arr = getPending().filter(x=>x.client_id !== client_id);
-  setPending(arr);
-}
-function renderPending(){
-  const arr = getPending();
-  $("pendingCount").textContent = String(arr.length);
-
-  const tb = $("pendingTable");
-  tb.innerHTML = "";
-  if(!arr.length){
-    tb.innerHTML = `<tr><td colspan="6">Aucune ligne en attente</td></tr>`;
-    return;
-  }
-  arr.forEach(x=>{
-    tb.innerHTML += `
-      <tr>
-        <td>${new Date(x.local_created_at).toLocaleString()}</td>
-        <td>${x.ville}</td>
-        <td>${x.type}</td>
-        <td class="right">${x.nb}</td>
-        <td class="right">${x.net}</td>
-        <td class="right">
-          <button class="smallBtn danger" onclick="deletePending('${x.client_id}')">Suppr</button>
-        </td>
-      </tr>`;
-  });
-}
-function deletePending(client_id){
-  if(!confirm("Supprimer cette ligne en attente ?")) return;
-  removePending(client_id);
-  renderPending();
-  renderMixedHistory();
-  buildRecap();
-}
-
-/* ---- HISTORY CACHE ---- */
-function getHistoryCache(){
-  try{ return JSON.parse(localStorage.getItem(HISTORY_CACHE_KEY) || "[]"); }
-  catch{ return []; }
-}
-function setHistoryCache(rows, source){
-  localStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(rows || []));
-  localStorage.setItem(CACHE_META_KEY, JSON.stringify({ updatedAt: Date.now(), source: source || "LIVE" }));
-}
-function getHistoryMeta(){
-  try{ return JSON.parse(localStorage.getItem(CACHE_META_KEY) || "null"); }
-  catch{ return null; }
-}
-/* ---- MIXED RENDER ---- */
-function renderMixedHistory(){
-  const pending = getPending().map(p=>({
-    id: null,
-    created_at: new Date(p.local_created_at).toISOString(),
-    ville: p.ville,
-    type: p.type,
-    nb: p.nb,
-    net: p.net,
-    user_email: p.user_email || "—",
-    _source: "ATTENTE",
-    _client_id: p.client_id
-  }));
-
-  const cached = getHistoryCache().map(r=>({
-    ...r,
-    _source: (lastHistorySource === "LIVE" ? "LIVE" : "CACHE")
-  }));
-
-  const all = [...pending, ...cached]
-    .sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
-
-  const tb = $("histMix");
-  tb.innerHTML = "";
-
-  if(!all.length){
-    tb.innerHTML = `<tr><td colspan="${isAdminUser?8:7}">Aucune donnée</td></tr>`;
-    return;
-  }
-
-  all.forEach(r=>{
-    const srcTag = r._source;
-
-    const adminCell = isAdminUser
-      ? (r._source==="ATTENTE"
-          ? `<td>—</td>`
-          : `<td><button class="smallBtn danger" onclick="deleteRow(${r.id})">Suppr</button></td>`)
-      : "";
-
-    tb.innerHTML += `
-      <tr>
-        <td>${new Date(r.created_at).toLocaleString()}</td>
-        <td>${r.ville}</td>
-        <td>${r.type}</td>
-        <td class="right">${r.nb}</td>
-        <td class="right">${r.net}</td>
-        <td>${r.user_email || "—"}</td>
-        <td>${srcTag}</td>
-        ${adminCell}
-      </tr>`;
-  });
-}
-
-/* ✅ SYNC pending -> Supabase (anti-doublon via upsert client_id) */
-async function syncPending(){
-  const arr = getPending();
-  $("pendingCount").textContent = String(arr.length);
-  if(!arr.length) return;
-
-  if(!navigator.onLine){
-    setStatus("Hors-ligne : SYNC impossible.");
-    return;
-  }
-
-  const { data: u } = await supabase.auth.getUser();
-  if(!u?.user){
-    setStatus("Connecte-toi pour SYNC.");
-    return;
-  }
-
-  setStatus("SYNC… ("+arr.length+" en attente)");
-  let ok = 0;
-
-  const toSend = [...arr].reverse();
-  for(const row of toSend){
-    try{
-      const payload = {
-        client_id: row.client_id,
-        ville: row.ville,
-        type: row.type,
-        nb: row.nb,
-        brut: row.brut,
-        tare: row.tare,
-        net: row.net,
-        user_email: row.user_email || (u.user.email||null)
-      };
-
-      const { error } = await supabase
-        .from("pesees")
-        .upsert(payload, { onConflict: "client_id" });
-
-      if(error) throw error;
-
-      ok++;
-      removePending(row.client_id);
-    }catch(e){
-      setStatus("❌ SYNC arrêté : " + (e?.message || String(e)));
-      renderPending();
-      renderMixedHistory();
-      return;
-    }
-  }
-
-  renderPending();
-  setStatus("✅ SYNC terminé : "+ok+" envoyées");
-  await loadData();
-  await buildRecap();
-  renderMixedHistory();
-}
-
-/* ✅ LOGIN / LOGOUT (avec erreurs visibles partout) */
-async function login(){
-  try{
-    const email = $("email").value.trim();
-    const password = $("password").value;
-
-    if(!email || !password) return setLoginMsg("Email + mot de passe.");
-
-    setLoginMsg("Connexion…");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if(error) throw error;
-
-    const { data } = await supabase.auth.getUser();
-    currentUser = data?.user || null;
-
-    try { isAdminUser = await checkAdmin(); } catch { isAdminUser = false; }
-    setAdminUI();
-
-    $("badgeUser").textContent = currentUser?.email ? ("Connecté : " + currentUser.email) : "Connecté";
-    $("loginScreen").style.display = "none";
-    $("app").style.display = "block";
-
-    await loadCities();
-    await loadData();
-    await loadPamTrieData();
-    await loadAslTrieData();
-    loadTrieAll();
-
-    if(!$("recapDate").value) $("recapDate").value = ymdToday();
-    setLoginMsg("");
-    setStatus("✅ Connecté");
-
-    syncPending();
-    syncPamTriePending();
-    syncAslTriePending();
-    show("pesee");
-  }catch(e){
-    // ✅ message d'erreur clair (invalid api key / email logins disabled / etc)
-    setLoginMsg("❌ " + (e?.message || String(e)));
-  }
-}
-
-async function logout(){
-  try{
-    setStatus("Déconnexion…");
-    await supabase.auth.signOut();
-    location.reload();
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
-  }
-}
-
-/* ✅ RESET CACHE (pour corriger les autres téléphones) */
-async function resetCache(){
-  try{
-    localStorage.clear();
-    sessionStorage.clear();
-
-    if("caches" in window){
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k=>caches.delete(k)));
-    }
-    if("serviceWorker" in navigator){
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r=>r.unregister()));
-    }
-    alert("Cache supprimé. Recharge la page.");
-    location.reload(true);
-  }catch(e){
-    alert("Erreur reset cache: " + (e?.message || String(e)));
-  }
-}
-
-/* Villes */
-async function loadCities(){
-  try{
-    const { data, error } = await supabase.from("villes").select("id, nom").order("nom", { ascending:true }).limit(500);
-    if(error) throw error;
-
-    const sel = $("ville");
-    sel.innerHTML = "";
-    (data||[]).forEach(v=>{
-      const opt = document.createElement("option");
-      opt.value = v.nom;
-      opt.textContent = v.nom;
-      sel.appendChild(opt);
-    });
-    if(!sel.options.length) sel.innerHTML = "<option>—</option>";
-
-    const tb = $("citiesAdmin");
-    tb.innerHTML = "";
-    if(!isAdminUser){
-      tb.innerHTML = `<tr><td colspan="2">Admin uniquement</td></tr>`;
-      return;
-    }
-    (data||[]).forEach(v=>{
-      tb.innerHTML += `
-        <tr>
-          <td>${v.nom}</td>
-          <td class="right">
-            <button class="smallBtn danger" onclick="deleteCity(${v.id}, '${String(v.nom).replace(/'/g,"&#39;")}')">Suppr</button>
-          </td>
-        </tr>`;
-    });
-    if(!(data||[]).length) tb.innerHTML = `<tr><td colspan="2">Aucune ville</td></tr>`;
-  }catch(e){
-    setStatus("❌ VILLES: " + (e?.message || String(e)));
-  }
-}
-async function addCity(){
-  if(!isAdminUser) return alert("Admin uniquement");
-  const name = ($("newCity").value || "").trim();
-  if(!name) return alert("Entre un nom de ville.");
-  try{
-    setStatus("Ajout ville…");
-    const { error } = await supabase.from("villes").insert({ nom: name });
-    if(error) throw error;
-    $("newCity").value = "";
-    setStatus("✅ Ville ajoutée");
-    await loadCities();
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
-  }
-}
-async function deleteCity(id, nom){
-  if(!isAdminUser) return alert("Admin uniquement");
-  if(!confirm("Supprimer la ville : " + nom + " ?")) return;
-  try{
-    setStatus("Suppression ville…");
-    const { error } = await supabase.from("villes").delete().eq("id", id);
-    if(error) throw error;
-    setStatus("✅ Ville supprimée");
-    await loadCities();
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
-  }
-}
-
-/* ✅ Enregistrer : ajoute opérateur (user_email) */
-async function saveSafe(){
-  try{
-    calc();
-    const nb = Math.max(1, Math.floor(num($("nb").value)));
-    const brut = num($("brut").value);
-    const tare = (T[$("type").value] || 0) * nb;
-    const net = Math.max(0, brut - tare);
-    const ville = ($("ville").value || "").trim();
-    const type = A[$("type").value];
-
-    if(!ville || ville==="—") return alert("Choisis une ville.");
-    if(brut<=0) return alert("Entre un poids brut.");
-    if(brut<tare) return alert("Brut inférieur à la tare.");
-
-    const { data: u } = await supabase.auth.getUser();
-    const operator = u?.user?.email || null;
-
-    const ok = confirm(
-      "Confirmer ?\n\n" +
-      "Ville: " + ville + "\n" +
-      "Type: " + type + " | Nb: " + nb + "\n" +
-      "Brut: " + r1(brut) + " kg\n" +
-      "Tare: " + r1(tare) + " kg\n" +
-      "NET:  " + r1(net) + " kg"
+  <script>
+    /* ================================
+       CONFIG SUPABASE (CORRECTE)
+    ================================= */
+    const SUPABASE_URL = "https://dzfokswsmkvhjhziqakj.supabase.co";
+    const SUPABASE_KEY =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0";
+
+    const supabase = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
     );
-    if(!ok) return;
 
-    const client_id = "p_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const errorBox = document.getElementById("error");
+    const loginBtn = document.getElementById("loginBtn");
+/* ================================
+       LOGIN
+    ================================= */
+    loginBtn.addEventListener("click", async () => {
+      errorBox.textContent = "";
+      loginBtn.disabled = true;
+      loginBtn.textContent = "Connexion...";
 
-    const payload = {
-      client_id,
-      ville, type, nb,
-      brut: r1(brut),
-      tare: r1(tare),
-      net: r1(net),
-      user_email: operator
-    };
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
 
-    setStatus("Insertion…");
-    const { error } = await supabase
-      .from("pesees")
-      .upsert(payload, { onConflict: "client_id" });
+      if (!email || !password) {
+        errorBox.textContent = "Email et mot de passe requis";
+        loginBtn.disabled = false;
+        loginBtn.textContent = "SE CONNECTER";
+        return;
+      }
 
-    if(error) throw error;
+      try {
+        const { data, error } =
+          await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
 
-    $("brut").value = "";
-    $("nb").value = 1;
-    calc();
+        if (error) {
+          errorBox.textContent = error.message;
+          loginBtn.disabled = false;
+          loginBtn.textContent = "SE CONNECTER";
+          return;
+        }
 
-    setStatus("✅ Enregistré");
-    await loadData();
-    await buildRecap();
-    renderMixedHistory();
-    show("pesee");
-  }catch(e){
-    // pending
-    const nb = Math.max(1, Math.floor(num($("nb").value)));
-    const brut = num($("brut").value);
-    const tare = (T[$("type").value] || 0) * nb;
-    const net = Math.max(0, brut - tare);
-    const ville = ($("ville").value || "").trim();
-    const type = A[$("type").value];
+        // ✅ SUCCÈS
+        alert("Connexion réussie : " + data.user.email);
 
-    const { data: u } = await supabase.auth.getUser();
-    const operator = u?.user?.email || null;
+        // 👉 redirection possible
+        // window.location.href = "pesee.html";
 
-    const client_id = "p_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+      } catch (e) {
+        errorBox.textContent = "Erreur réseau ou navigateur";
+      }
 
-    addPending({
-      client_id,
-      local_created_at: Date.now(),
-      ville, type, nb,
-      brut: r1(brut),
-      tare: r1(tare),
-      net: r1(net),
-      user_email: operator
+      loginBtn.disabled = false;
+      loginBtn.textContent = "SE CONNECTER";
     });
-
-    $("brut").value = "";
-    $("nb").value = 1;
-    calc();
-
-    setStatus("⚠️ Hors-ligne / erreur : enregistré EN ATTENTE. Clique SYNC.");
-    renderPending();
-    renderMixedHistory();
-    buildRecap();
-    show("pesee");
-  }
-}
-
-/* Historique Supabase -> cache */
-async function loadData(){
-  try{
-    const { data, error } = await supabase
-      .from("pesees")
-      .select("id, created_at, ville, type, nb, net, client_id, user_email")
-      .order("created_at", { ascending:false })
-      .limit(2000);
-
-    if(error) throw error;
-
-    lastHistorySource = "LIVE";
-    setHistoryCache(data || [], "LIVE");
-    setStoreBadge();
-    renderMixedHistory();
-  }catch(e){
-    lastHistorySource = "CACHE";
-    setStoreBadge();
-    setStatus("⚠️ Supabase indisponible : affichage depuis le CACHE local.");
-    renderMixedHistory();
-  }
-}
-
-/* Admin delete / clear */
-async function deleteRow(id){
-  if(!isAdminUser) return alert("Admin uniquement");
-  if(!confirm("Supprimer cette ligne ?")) return;
-  try{
-    setStatus("Suppression…");
-    const { error } = await supabase.from("pesees").delete().eq("id", id);
-    if(error) throw error;
-    setStatus("✅ Supprimé");
-    await loadData();
-    await buildRecap();
-    renderMixedHistory();
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
-  }
-}
-async function clearAll(){
-  if(!isAdminUser) return alert("Admin uniquement");
-  if(!confirm("⚠️ Vider TOUT l’historique ?")) return;
-  try{
-    setStatus("Suppression totale…");
-
-    // ✅ supprime tout sans dépendre des id (plus fiable)
-    const { error } = await supabase.from("pesees").delete().neq("client_id", "___never___");
-    if(error) throw error;
-
-    setStatus("✅ Historique vidé");
-    await loadData();
-    await buildRecap();
-    renderMixedHistory();
-  }catch(e){
-    setStatus("❌ " + (e?.message || String(e)));
-  }
-}
-
-/* --- RÉCAP --- */
-function ymdToday(){
-  const d=new Date();
-  const y=d.getFullYear();
-  const m=String(d.getMonth()+1).padStart(2,"0");
-  const da=String(d.getDate()).padStart(2,"0");
-  return `${y}-${m}-${da}`;
-}
-function recapToday(){ $("recapDate").value = ymdToday(); buildRecap(); }
-function dayRangeLocal(ymd){
-  const [y,m,d]=ymd.split("-").map(Number);
-  const start=new Date(y,m-1,d,0,0,0,0).getTime();
-  const end=new Date(y,m-1,d+1,0,0,0,0).getTime();
-  return { start, end };
-}
-function inLocalDay(isoOrMs, start, end){
-  const t = typeof isoOrMs==="number" ? isoOrMs : new Date(isoOrMs).getTime();
-  return t>=start && t<end;
-}
-function recapFromRows(rows, pendingRows){
-  const totalAll = {PAM:0,ASL:0,ABJ:0,F:0,HF:0};
-  const byCity = {};
-  const add = (ville, type, net)=>{
-    const t = String(type||"").toUpperCase();
-    if(!TYPES.includes(t)) return;
-    const n = num(net);
-    totalAll[t]+=n;
-    const v = ville || "—";
-    if(!byCity[v]) byCity[v]={PAM:0,ASL:0,ABJ:0,F:0,HF:0};
-    byCity[v][t]+=n;
-  };
-  (rows||[]).forEach(r=> add(r.ville, r.type, r.net));
-  (pendingRows||[]).forEach(p=> add(p.ville, p.type, p.net));
-  return { totalAll, byCity };
-}
-function renderRecapTables(totalAll, byCity){
-  const sumAll = TYPES.reduce((s,k)=>s+totalAll[k],0);
-  $("recapAll").innerHTML = `
-    <tr>
-      <td class="right">${r1(totalAll.PAM)}</td>
-      <td class="right">${r1(totalAll.ASL)}</td>
-      <td class="right">${r1(totalAll.ABJ)}</td>
-      <td class="right">${r1(totalAll.F)}</td>
-      <td class="right">${r1(totalAll.HF)}</td>
-      <td class="right"><b>${r1(sumAll)}</b></td>
-    </tr>`;
-  const villes = Object.keys(byCity).sort((a,b)=>a.localeCompare(b,"fr"));
-  if(!villes.length){
-    $("recapByCity").innerHTML = `<tr><td colspan="7">Aucune donnée</td></tr>`;
-    return;
-  }
-  $("recapByCity").innerHTML = villes.map(v=>{
-    const o = byCity[v];
-    const sum = TYPES.reduce((s,k)=>s+o[k],0);
-    return `
-      <tr>
-        <td>${v}</td>
-        <td class="right">${r1(o.PAM)}</td>
-        <td class="right">${r1(o.ASL)}</td>
-        <td class="right">${r1(o.ABJ)}</td>
-        <td class="right">${r1(o.F)}</td>
-        <td class="right">${r1(o.HF)}</td>
-        <td class="right"><b>${r1(sum)}</b></td>
-      </tr>`;
-  }).join("");
-}
-async function buildRecap(){
-  try{
-    const date = $("recapDate").value || ymdToday();
-    $("recapDate").value = date;
-
-    const [y,m,d]=date.split("-").map(Number);
-    const s=new Date(y,m-1,d,0,0,0,0);
-    const e=new Date(y,m-1,d+1,0,0,0,0);
-
-    try{
-      const { data, error } = await supabase
-        .from("pesees")
-        .select("ville,type,net,created_at")
-        .gte("created_at", s.toISOString())
-        .lt("created_at", e.toISOString())
-        .limit(5000);
-      if(error) throw error;
-
-      const { start, end } = dayRangeLocal(date);
-      const pendToday = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
-      const recap = recapFromRows(data || [], pendToday);
-      renderRecapTables(recap.totalAll, recap.byCity);
-    }catch{
-      const { start, end } = dayRangeLocal(date);
-      const cache = getHistoryCache().filter(r=> inLocalDay(r.created_at, start, end));
-      const pend = getPending().filter(p=> inLocalDay(p.local_created_at, start, end));
-      const recap = recapFromRows(cache, pend);
-      renderRecapTables(recap.totalAll, recap.byCity);
-    }
-  }catch(e){
-    $("recapAll").innerHTML = `<tr><td colspan="6">Erreur: ${(e?.message||String(e))}</td></tr>`;
-    $("recapByCity").innerHTML = "";
-  }
-}
-
-/* =========================
-   ✅ TRIE (PAM + ASL) OFFLINE + SYNC
-========================= */
-function ymdLocalFromISO(iso){
-  const d=new Date(iso);
-  const y=d.getFullYear();
-  const m=String(d.getMonth()+1).padStart(2,"0");
-  const da=String(d.getDate()).padStart(2,"0");
-  return `${y}-${m}-${da}`;
-}
-
-/* ---------- PAM ---------- */
-const PAM_TRIE_PENDING_KEY = "pam_trie_pending_v2";
-const PAM_TRIE_CACHE_KEY   = "pam_trie_cache_v2";
-const PAM_TRIE_META_KEY    = "pam_trie_cache_meta_v2";
-let lastPamTrieSource = "LIVE";
-
-function getPamTriePending(){ try{ return JSON.parse(localStorage.getItem(PAM_TRIE_PENDING_KEY)||"[]"); }catch{ return []; } }
-function setPamTriePending(arr){
-  localStorage.setItem(PAM_TRIE_PENDING_KEY, JSON.stringify(arr));
-  $("pamTriePendingCount").textContent = String(arr.length);
-}
-function addPamTriePending(row){ const arr=getPamTriePending(); arr.unshift(row); setPamTriePending(arr); }
-function removePamTriePending(client_id){ setPamTriePending(getPamTriePending().filter(x=>x.client_id!==client_id)); }
-function getPamTrieCache(){ try{ return JSON.parse(localStorage.getItem(PAM_TRIE_CACHE_KEY)||"[]"); }catch{ return []; } }
-function setPamTrieCache(rows, source){
-  localStorage.setItem(PAM_TRIE_CACHE_KEY, JSON.stringify(rows||[]));
-  localStorage.setItem(PAM_TRIE_META_KEY, JSON.stringify({ updatedAt: Date.now(), source: source||"LIVE" }));
-}
-function getPamTrieMeta(){ try{ return JSON.parse(localStorage.getItem(PAM_TRIE_META_KEY)||"null"); }catch{ return null; } }
-
-async function addPamTrie(delta){
-  const client_id="t_pam_"+Date.now()+"_"+Math.random().toString(16).slice(2);
-  try{
-    const { data: u } = await supabase.auth.getUser();
-    if(!u?.user) return alert("Connecte-toi.");
-    if(!navigator.onLine) throw new Error("offline");
-    const payload={ client_id, delta, user_email: u.user.email||null };
-    const { error } = await supabase.from("pam_trie").upsert(payload,{ onConflict:"client_id" });
-    if(error) throw error;
-    await loadPamTrieData(); loadTrieAll();
-  }catch{
-    addPamTriePending({ client_id, local_created_at: Date.now(), delta });
-    loadTrieAll();
-  }
-}
-async function syncPamTriePending(){
-  const arr=getPamTriePending();
-  $("pamTriePendingCount").textContent = String(arr.length);
-  if(!arr.length || !navigator.onLine) return;
-
-  const { data: u } = await supabase.auth.getUser();
-  if(!u?.user) return;
-
-  const toSend=[...arr].reverse();
-  for(const row of toSend){
-    try{
-      const payload={ client_id: row.client_id, delta: row.delta, user_email: u.user.email||null };
-      const { error } = await supabase.from("pam_trie").upsert(payload,{ onConflict:"client_id" });
-      if(error) throw error;
-      removePamTriePending(row.client_id);
-    }catch{ break; }
-  }
-  await loadPamTrieData(); loadTrieAll();
-}
-async function loadPamTrieData(){
-  try{
-    const { data, error } = await supabase
-      .from("pam_trie")
-      .select("id, created_at, delta, client_id")
-      .order("created_at",{ ascending:false })
-      .limit(2000);
-    if(error) throw error;
-    lastPamTrieSource="LIVE";
-    setPamTrieCache(data||[], "LIVE");
-  }catch{
-    lastPamTrieSource="CACHE";
-  }
-}
-function buildPamTrieMerged(){
-  const pending=getPamTriePending().map(p=>({ created_at:new Date(p.local_created_at).toISOString(), delta:p.delta, _source:"ATTENTE" }));
-  const cached=getPamTrieCache().map(r=>({ ...r, _source:(lastPamTrieSource==="LIVE"?"LIVE":"CACHE") }));
-  const all=[...pending,...cached].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-
-  const totals={};
-  for(const r of all){
-    const day=ymdLocalFromISO(r.created_at);
-    totals[day]=(totals[day]||0)+(Number(r.delta)||0);
-  }
-  const totalsArr=Object.keys(totals).sort((a,b)=>b.localeCompare(a)).map(day=>({ day, total: totals[day] }));
-  return { all, totalsArr };
-}
-function renderPamTrieTables(totalsId, histId){
-  const { all, totalsArr } = buildPamTrieMerged();
-  const tbT=$(totalsId); tbT.innerHTML="";
-  tbT.innerHTML = totalsArr.length
-    ? totalsArr.map(r=>`<tr><td>${r.day}</td><td class="right"><b>${r.total}</b></td></tr>`).join("")
-    : `<tr><td colspan="2">Aucune donnée</td></tr>`;
-  const tbH=$(histId); tbH.innerHTML="";
-  tbH.innerHTML = all.length
-    ? all.slice(0,400).map(r=>{
-        const dt=new Date(r.created_at).toLocaleString();
-        const v=(r.delta>0?("+"+r.delta):String(r.delta));
-        return `<tr><td>${dt}</td><td class="right"><b>${v}</b></td><td>${r._source}</td></tr>`;
-      }).join("")
-    : `<tr><td colspan="3">Aucune donnée</td></tr>`;
-}
-
-/* ---------- ASL ---------- */
-const ASL_TRIE_PENDING_KEY = "asl_trie_pending_v2";
-const ASL_TRIE_CACHE_KEY   = "asl_trie_cache_v2";
-const ASL_TRIE_META_KEY    = "asl_trie_cache_meta_v2";
-let lastAslTrieSource = "LIVE";
-
-function getAslTriePending(){ try{ return JSON.parse(localStorage.getItem(ASL_TRIE_PENDING_KEY)||"[]"); }catch{ return []; } }
-function setAslTriePending(arr){
-  localStorage.setItem(ASL_TRIE_PENDING_KEY, JSON.stringify(arr));
-  $("aslTriePendingCount").textContent = String(arr.length);
-}
-function addAslTriePending(row){ const arr=getAslTriePending(); arr.unshift(row); setAslTriePending(arr); }
-function removeAslTriePending(client_id){ setAslTriePending(getAslTriePending().filter(x=>x.client_id!==client_id)); }
-function getAslTrieCache(){ try{ return JSON.parse(localStorage.getItem(ASL_TRIE_CACHE_KEY)||"[]"); }catch{ return []; } }
-function setAslTrieCache(rows, source){
-  localStorage.setItem(ASL_TRIE_CACHE_KEY, JSON.stringify(rows||[]));
-  localStorage.setItem(ASL_TRIE_META_KEY, JSON.stringify({ updatedAt: Date.now(), source: source||"LIVE" }));
-}
-function getAslTrieMeta(){ try{ return JSON.parse(localStorage.getItem(ASL_TRIE_META_KEY)||"null"); }catch{ return null; } }
-
-async function addAslTrie(delta){
-  const client_id="t_asl_"+Date.now()+"_"+Math.random().toString(16).slice(2);
-  try{
-    const { data: u } = await supabase.auth.getUser();
-    if(!u?.user) return alert("Connecte-toi.");
-    if(!navigator.onLine) throw new Error("offline");
-    const payload={ client_id, delta, user_email: u.user.email||null };
-    const { error } = await supabase.from("asl_trie").upsert(payload,{ onConflict:"client_id" });
-    if(error) throw error;
-    await loadAslTrieData(); loadTrieAll();
-  }catch{
-    addAslTriePending({ client_id, local_created_at: Date.now(), delta });
-    loadTrieAll();
-  }
-}
-async function syncAslTriePending(){
-  const arr=getAslTriePending();
-  $("aslTriePendingCount").textContent = String(arr.length);
-  if(!arr.length || !navigator.onLine) return;
-
-  const { data: u } = await supabase.auth.getUser();
-  if(!u?.user) return;
-
-  const toSend=[...arr].reverse();
-  for(const row of toSend){
-    try{
-      const payload={ client_id: row.client_id, delta: row.delta, user_email: u.user.email||null };
-      const { error } = await supabase.from("asl_trie").upsert(payload,{ onConflict:"client_id" });
-      if(error) throw error;
-      removeAslTriePending(row.client_id);
-    }catch{ break; }
-  }
-  await loadAslTrieData(); loadTrieAll();
-}
-async function loadAslTrieData(){
-  try{
-    const { data, error } = await supabase
-      .from("asl_trie")
-      .select("id, created_at, delta, client_id")
-      .order("created_at",{ ascending:false })
-      .limit(2000);
-    if(error) throw error;
-    lastAslTrieSource="LIVE";
-    setAslTrieCache(data||[], "LIVE");
-  }catch{
-    lastAslTrieSource="CACHE";
-  }
-}
-function buildAslTrieMerged(){
-  const pending=getAslTriePending().map(p=>({ created_at:new Date(p.local_created_at).toISOString(), delta:p.delta, _source:"ATTENTE" }));
-  const cached=getAslTrieCache().map(r=>({ ...r, _source:(lastAslTrieSource==="LIVE"?"LIVE":"CACHE") }));
-  const all=[...pending,...cached].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-
-  const totals={};
-  for(const r of all){
-    const day=ymdLocalFromISO(r.created_at);
-    totals[day]=(totals[day]||0)+(Number(r.delta)||0);
-  }
-  const totalsArr=Object.keys(totals).sort((a,b)=>b.localeCompare(a)).map(day=>({ day, total: totals[day] }));
-  return { all, totalsArr };
-}
-function renderAslTrieTables(totalsId, histId){
-  const { all, totalsArr } = buildAslTrieMerged();
-  const tbT=$(totalsId); tbT.innerHTML="";
-  tbT.innerHTML = totalsArr.length
-    ? totalsArr.map(r=>`<tr><td>${r.day}</td><td class="right"><b>${r.total}</b></td></tr>`).join("")
-    : `<tr><td colspan="2">Aucune donnée</td></tr>`;
-  const tbH=$(histId); tbH.innerHTML="";
-  tbH.innerHTML = all.length
-    ? all.slice(0,400).map(r=>{
-        const dt=new Date(r.created_at).toLocaleString();
-        const v=(r.delta>0?("+"+r.delta):String(r.delta));
-        return `<tr><td>${dt}</td><td class="right"><b>${v}</b></td><td>${r._source}</td></tr>`;
-      }).join("")
-    : `<tr><td colspan="3">Aucune donnée</td></tr>`;
-}
-
-/* Render ALL */
-function loadTrieAll(){
-  $("pamTriePendingCount").textContent = String(getPamTriePending().length);
-  $("aslTriePendingCount").textContent = String(getAslTriePending().length);
-
-  renderPamTrieTables("pamTrieTotals", "pamTrieHist");
-  renderAslTrieTables("aslTrieTotals", "aslTrieHist");
-
-  renderPamTrieTables("pamTrieTotalsHist", "pamTrieHistHist");
-  renderAslTrieTables("aslTrieTotalsHist", "aslTrieHistHist");
-}
-
-/* Init */
-(async ()=>{
-  refreshNetwork();
-  setPending(getPending());
-  renderPending();
-  calc();
-
-  const meta = getHistoryMeta();
-  lastHistorySource = meta?.source || "CACHE";
-  setStoreBadge();
-  renderMixedHistory();
-
-  // trie init local
-  setPamTriePending(getPamTriePending());
-  setAslTriePending(getAslTriePending());
-  const pmeta = getPamTrieMeta(); lastPamTrieSource = pmeta?.source || "CACHE";
-  const ameta = getAslTrieMeta(); lastAslTrieSource = ameta?.source || "CACHE";
-
-  const { data } = await supabase.auth.getUser();
-  if(data?.user){
-    currentUser = data.user;
-    $("badgeUser").textContent = currentUser?.email ? ("Connecté : " + currentUser.email) : "Connecté";
-
-    try { isAdminUser = await checkAdmin(); } catch { isAdminUser = false; }
-    setAdminUI();
-
-    $("loginScreen").style.display = "none";
-    $("app").style.display = "block";
-
-    await loadCities();
-    await loadData();
-    await loadPamTrieData();
-    await loadAslTrieData();
-    loadTrieAll();
-
-    $("recapDate").value = ymdToday();
-    buildRecap();
-    syncPending();
-    syncPamTriePending();
-    syncAslTriePending();
-
-    show("pesee");
-  }else{
-    $("pendingCount").textContent = String(getPending().length);
-    loadTrieAll();
-  }
-})();
-
-// ✅ TEMPORAIRE : désactive le service worker (sinon les autres tel gardent l'ancien code)
-// if ("serviceWorker" in navigator) {
-//   navigator.serviceWorker.register("/Pes-e/sw.js").catch(()=>{});
-// }
-</script>
-</body>
-</html>
-(async ()=>{
-  refreshNetwork();
-  setStatus("Prêt.");
-  calc();
-  calcTrieKg();
-
-  // restore caches
-  const meta = getHistoryMeta(); lastHistorySource = meta?.source || "CACHE"; setStoreBadge();
-  setPamTriePending(getPamTriePending());
-  setAslTriePending(getAslTriePending());
-  setTrieKgPending(getTrieKgPending());
-
-  const pmeta = getPamTrieMeta(); lastPamTrieSource = pmeta?.source || "CACHE";
-  const ameta = getAslTrieMeta(); lastAslTrieSource = ameta?.source || "CACHE";
-  const kmeta = getTrieKgMeta();  lastTrieKgSource  = kmeta?.source  || "CACHE";
-
-  renderPending();
-  renderMixedHistory();
-  loadTrieAll();
-
-  const { data } = await supabase.auth.getUser();
-  if(data?.user){
-    currentUser = data.user;
-    $("badgeUser").textContent = currentUser?.email ? ("Connecté : " + currentUser.email) : "Connecté";
-
-    try { isAdminUser = await checkAdmin(); } catch { isAdminUser = false; }
-    setAdminUI();
-
-    $("loginScreen").style.display = "none";
-    $("app").style.display = "block";
-
-    await loadCities();
-    await loadData();
-    await loadPamTrieData();
-    await loadAslTrieData();
-    await loadTrieKgData();
-    loadTrieAll();
-
-    $("recapDate").value = ymdToday();
-    buildRecap();
-
-    syncPending(); syncPamTriePending(); syncAslTriePending(); syncTrieKgPending();
-    show("pesee");
-  }
-})();
-
-/* Service worker (OK) */
-// ✅ TEMPORAIRE : désactive le service worker (sinon les autres tel gardent l'ancien code)
-// if ("serviceWorker" in navigator) {
-//   navigator.serviceWorker.register("/Pes-e/sw.js").catch(()=>{});
-// }
-</script>
+  </script>
 </body>
 </html>
