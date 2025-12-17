@@ -762,9 +762,13 @@ function resetAllCaches(){
   window.addEventListener("offline", refreshNetwork);
 })();
 
-/* Service worker */
-if("serviceWorker" in navigator){ navigator.serviceWorker.register("/Pes-e/sw.js"); }
+<!-- Service worker -->
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/Pes-e/sw.js");
+}
 </script>
+
 </body>
 </html>
 if("serviceWorker" in navigator){
