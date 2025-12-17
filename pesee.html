@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Pesée</title>
 
-<!-- ✅ PWA (IMPORTANT: chemins relatifs pour GitHub Pages) -->
+<!-- PWA -->
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#b22222">
 
@@ -41,8 +41,8 @@ hr{border:0;border-top:1px solid #222634;margin:14px 0}
 .tagWait{border-color:#7a1f1f;color:#ffd27a}
 .tagCache{border-color:#3a4a7a;color:#b7c6ff}
 
-/* CLEAN */
-label, th, .badge, .muted, .tag { color:#ffffff !important; }
+/* clean visuel */
+label, th, .badge { color:#ffffff !important; }
 .muted, .tag { display:none !important; }
 #status { display:none !important; }
 </style>
@@ -112,13 +112,13 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
 
           <div class="col-2">
             <label>Nb</label>
-            <!-- ✅ autorise + que 1 + clavier chiffres -->
-            <input id="nb" type="number" min="1" step="1" value="1" inputmode="numeric">
+            <!-- ✅ clavier chiffres + quantité libre -->
+            <input id="nb" type="number" inputmode="numeric" min="1" step="1" value="1">
           </div>
 
           <div class="col-2">
             <label>Brut (kg)</label>
-            <input id="brut" type="number" step="0.1" inputmode="decimal" placeholder="Ex: 120.5">
+            <input id="brut" type="number" inputmode="decimal" step="0.1" placeholder="Ex: 120.5">
           </div>
 
           <div class="col-12">
@@ -160,43 +160,8 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
           </div>
 
           <hr>
-          <h3>Admin – Historique pesées</h3>
+          <h3>Admin – Historique</h3>
           <button class="smallBtn danger" onclick="clearAll()">🧹 Vider tout l’historique</button>
-        </div>
-
-        <hr>
-
-        <!-- Récap -->
-        <h3>Récap du jour</h3>
-        <div class="grid">
-          <div class="col-4">
-            <label>Date</label>
-            <input id="recapDate" type="date">
-          </div>
-          <div class="col-2" style="display:flex;align-items:end;gap:8px;flex-wrap:wrap">
-            <button class="smallBtn" onclick="recapToday()">Aujourd’hui</button>
-            <button class="smallBtn" onclick="buildRecap()">Afficher</button>
-          </div>
-        </div>
-
-        <h4>Total (toutes villes)</h4>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr><th class="right">PAM</th><th class="right">ASL</th><th class="right">ABJ</th><th class="right">F</th><th class="right">HF</th><th class="right">TOTAL</th></tr>
-            </thead>
-            <tbody id="recapAll"></tbody>
-          </table>
-        </div>
-
-        <h4 style="margin-top:14px">Par ville</h4>
-        <div class="tableWrap">
-          <table>
-            <thead>
-              <tr><th>Ville</th><th class="right">PAM</th><th class="right">ASL</th><th class="right">ABJ</th><th class="right">F</th><th class="right">HF</th><th class="right">TOTAL</th></tr>
-            </thead>
-            <tbody id="recapByCity"></tbody>
-          </table>
         </div>
 
         <hr>
@@ -205,7 +170,7 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
         <div class="tableWrap">
           <table>
             <thead>
-              <tr><th>Date</th><th>Ville</th><th>Type</th><th class="right">Nb</th><th class="right">Net</th><th class="right">Action</th></tr>
+              <tr><th>Date</th><th>Ville</th><th>Type</th><th class="right">Nb</th><th class="right">Net</th><th>Opérateur</th><th class="right">Action</th></tr>
             </thead>
             <tbody id="pendingTable"></tbody>
           </table>
@@ -213,7 +178,7 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
 
         <hr>
 
-        <h3>Historique pesées (Supabase + Cache + Attente)</h3>
+        <h3>Pesées (Supabase + Cache + Attente)</h3>
         <div class="tableWrap">
           <table>
             <thead>
@@ -227,9 +192,9 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
         </div>
 
         <hr>
-        <h2>Trie</h2>
+        <h2>Trie (Historique)</h2>
 
-        <h3>PAM trié (+1 / -1)</h3>
+        <h3>+/- (PAM trié)</h3>
         <h4>Total par jour</h4>
         <div class="tableWrap">
           <table>
@@ -237,17 +202,17 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
             <tbody id="pamTrieTotalsHist"></tbody>
           </table>
         </div>
-        <h4 style="margin-top:14px">Détails (date + heure)</h4>
+        <h4 style="margin-top:14px">Détails</h4>
         <div class="tableWrap">
           <table>
-            <thead><tr><th>Date/Heure</th><th class="right">+ / -</th><th>Source</th></tr></thead>
+            <thead><tr><th>Date/Heure</th><th class="right">+/-</th><th>Opérateur</th><th>Source</th></tr></thead>
             <tbody id="pamTrieHistHist"></tbody>
           </table>
         </div>
 
         <hr>
 
-        <h3>ASL trié (+1 / -1)</h3>
+        <h3>+/- (ASL trié)</h3>
         <h4>Total par jour</h4>
         <div class="tableWrap">
           <table>
@@ -255,18 +220,18 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
             <tbody id="aslTrieTotalsHist"></tbody>
           </table>
         </div>
-        <h4 style="margin-top:14px">Détails (date + heure)</h4>
+        <h4 style="margin-top:14px">Détails</h4>
         <div class="tableWrap">
           <table>
-            <thead><tr><th>Date/Heure</th><th class="right">+ / -</th><th>Source</th></tr></thead>
+            <thead><tr><th>Date/Heure</th><th class="right">+/-</th><th>Opérateur</th><th>Source</th></tr></thead>
             <tbody id="aslTrieHistHist"></tbody>
           </table>
         </div>
 
         <hr>
 
-        <h3>Trie en KG (avec tare ABJ / ASL / PAM)</h3>
-        <h4>Totaux par jour</h4>
+        <h3>Trie en KG (Plastiques / NREP)</h3>
+        <h4>Total par jour (kg)</h4>
         <div class="tableWrap">
           <table>
             <thead><tr><th>Jour</th><th>Catégorie</th><th class="right">Total (kg)</th></tr></thead>
@@ -274,122 +239,108 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
           </table>
         </div>
 
-        <h4 style="margin-top:14px">Détails (date + heure)</h4>
+        <h4 style="margin-top:14px">Détails (kg)</h4>
         <div class="tableWrap">
           <table>
-            <thead><tr><th>Date/Heure</th><th>Catégorie</th><th>Bac</th><th class="right">Nb</th><th class="right">Net (kg)</th><th>Source</th></tr></thead>
+            <thead><tr><th>Date/Heure</th><th>Catégorie</th><th class="right">Nb</th><th class="right">Net (kg)</th><th>Opérateur</th><th>Source</th></tr></thead>
             <tbody id="trieKgHistHist"></tbody>
           </table>
         </div>
+
       </div>
 
       <!-- PAGE TRIE -->
       <div id="pageTrie" style="display:none">
         <h2>Trie</h2>
 
-        <h3>PAM trié (+1 / -1)</h3>
+        <h3>+/- (PAM trié)</h3>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
           <button onclick="addPamTrie(+1)">+1 PAM trié</button>
           <button class="danger" onclick="addPamTrie(-1)">-1 PAM trié</button>
           <button class="smallBtn" onclick="syncPamTriePending()">⟳ SYNC PAM (<span id="pamTriePendingCount">0</span>)</button>
-          <button class="smallBtn" onclick="loadTrieAll()">🔄 Rafraîchir</button>
         </div>
-
-        <h4>Total PAM trié par jour</h4>
         <div class="tableWrap">
           <table>
             <thead><tr><th>Jour</th><th class="right">Total</th></tr></thead>
             <tbody id="pamTrieTotals"></tbody>
           </table>
         </div>
-
-        <h4 style="margin-top:14px">Historique PAM trié (date + heure)</h4>
-        <div class="tableWrap">
+        <div class="tableWrap" style="margin-top:12px">
           <table>
-            <thead><tr><th>Date/Heure</th><th class="right">+ / -</th><th>Source</th></tr></thead>
+            <thead><tr><th>Date/Heure</th><th class="right">+/-</th><th>Opérateur</th><th>Source</th></tr></thead>
             <tbody id="pamTrieHist"></tbody>
           </table>
         </div>
 
         <hr>
 
-        <h3>ASL trié (+1 / -1)</h3>
+        <h3>+/- (ASL trié)</h3>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
           <button onclick="addAslTrie(+1)">+1 ASL trié</button>
           <button class="danger" onclick="addAslTrie(-1)">-1 ASL trié</button>
           <button class="smallBtn" onclick="syncAslTriePending()">⟳ SYNC ASL (<span id="aslTriePendingCount">0</span>)</button>
-          <button class="smallBtn" onclick="loadTrieAll()">🔄 Rafraîchir</button>
         </div>
-
-        <h4>Total ASL trié par jour</h4>
         <div class="tableWrap">
           <table>
             <thead><tr><th>Jour</th><th class="right">Total</th></tr></thead>
             <tbody id="aslTrieTotals"></tbody>
           </table>
         </div>
-
-        <h4 style="margin-top:14px">Historique ASL trié (date + heure)</h4>
-        <div class="tableWrap">
+        <div class="tableWrap" style="margin-top:12px">
           <table>
-            <thead><tr><th>Date/Heure</th><th class="right">+ / -</th><th>Source</th></tr></thead>
+            <thead><tr><th>Date/Heure</th><th class="right">+/-</th><th>Opérateur</th><th>Source</th></tr></thead>
             <tbody id="aslTrieHist"></tbody>
           </table>
         </div>
 
         <hr>
 
-        <h3>Trie en KG (Plastique dur → NREP Refashion)</h3>
+        <h3>Trie en KG (avec tare)</h3>
 
         <div class="grid">
           <div class="col-6">
-            <label>Catégorie</label>
-            <select id="trieKgCat">
-              <option value="PAM Pile">PAM Pile</option>
-              <option value="Plastique dur">Plastique dur</option>
-              <option value="Plastique mou">Plastique mou</option>
-              <option value="ASL autre">ASL autre</option>
-              <option value="N-DIB">N-DIB</option>
-              <option value="NREP Ecomaison">NREP Ecomaison</option>
-              <option value="NREP Refashion">NREP Refashion</option>
+            <label>Catégorie (kg)</label>
+            <select id="kgCat">
+              <option value="PLASTIQUE_DUR">Plastique dur</option>
+              <option value="PLASTIQUE_MOU">Plastique mou</option>
+              <option value="ASL_AUTRE">ASL autre</option>
+              <option value="N_DIB">N-DIB</option>
+              <option value="NREP_ECOMAISON">NREP Ecomaison</option>
+              <option value="NREP_REFASHION">NREP Refashion</option>
             </select>
           </div>
 
           <div class="col-3">
             <label>Bac</label>
-            <select id="trieKgBac">
-              <option value="ABJ">ABJ (tare 43)</option>
-              <option value="ASL">ASL (tare 45)</option>
-              <option value="PAM">PAM (tare 59)</option>
+            <select id="kgBac">
+              <option value="ABJ">ABJ (43kg)</option>
+              <option value="ASL">ASL (45kg)</option>
+              <option value="NONE">Aucun (0kg)</option>
             </select>
           </div>
 
           <div class="col-3">
             <label>Nb bacs</label>
-            <input id="trieKgNb" type="number" min="1" step="1" value="1" inputmode="numeric">
+            <input id="kgNb" type="number" inputmode="numeric" min="1" step="1" value="1">
           </div>
 
           <div class="col-6">
             <label>Brut (kg)</label>
-            <input id="trieKgBrut" type="number" step="0.1" inputmode="decimal" placeholder="Ex: 120.5">
+            <input id="kgBrut" type="number" inputmode="decimal" step="0.1" placeholder="Ex: 210.5">
           </div>
 
           <div class="col-6">
-            <label>Net (auto)</label>
-            <input id="trieKgNet" type="text" readonly>
+            <div class="big">Net KG : <span id="kgNet">0</span></div>
           </div>
 
           <div class="col-12">
-            <button onclick="saveTrieKgSafe()">ENREGISTRER TRIE KG</button>
+            <button onclick="saveKgTrie()">ENREGISTRER KG</button>
+            <button class="smallBtn" onclick="syncTrieKgPending()">⟳ SYNC KG (<span id="trieKgPendingCount">0</span>)</button>
+            <button class="smallBtn" onclick="loadTrieAll()">🔄 Rafraîchir</button>
           </div>
         </div>
 
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
-          <button class="smallBtn" onclick="syncTrieKgPending()">⟳ SYNC TRIE KG (<span id="trieKgPendingCount">0</span>)</button>
-          <button class="smallBtn" onclick="loadTrieAll()">🔄 Rafraîchir</button>
-        </div>
-
-        <h4 style="margin-top:14px">Totaux par jour (kg)</h4>
+        <h4 style="margin-top:10px">Totaux par jour</h4>
         <div class="tableWrap">
           <table>
             <thead><tr><th>Jour</th><th>Catégorie</th><th class="right">Total (kg)</th></tr></thead>
@@ -397,10 +348,10 @@ label, th, .badge, .muted, .tag { color:#ffffff !important; }
           </table>
         </div>
 
-        <h4 style="margin-top:14px">Historique (date + heure)</h4>
+        <h4 style="margin-top:14px">Historique (kg)</h4>
         <div class="tableWrap">
           <table>
-            <thead><tr><th>Date/Heure</th><th>Catégorie</th><th>Bac</th><th class="right">Nb</th><th class="right">Net (kg)</th><th>Source</th></tr></thead>
+            <thead><tr><th>Date/Heure</th><th>Catégorie</th><th class="right">Nb</th><th class="right">Net (kg)</th><th>Opérateur</th><th>Source</th></tr></thead>
             <tbody id="trieKgHist"></tbody>
           </table>
         </div>
@@ -418,10 +369,27 @@ const supabase = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0"
 );
 
-/* TARES + TYPES */
+/* TARES pesée */
 const T = { PAM:59, ASL:45, ABJ:43, FRIGO:0, HF:0 };
 const A = { PAM:"PAM", ASL:"ASL", ABJ:"ABJ", FRIGO:"F", HF:"HF" };
-const TYPES = ["PAM","ASL","ABJ","F","HF"];
+
+/* Tares bacs kg */
+const KG_TARE = { ABJ:43, ASL:45, NONE:0 };
+
+/* OFFLINE KEYS pesées */
+const PENDING_KEY = "pesees_pending_v5";
+const HISTORY_CACHE_KEY = "pesees_history_cache_v2";
+const CACHE_META_KEY = "pesees_history_cache_meta_v2";
+
+/* OFFLINE KEYS TRIE +/- */
+const PAM_TRIE_PENDING_KEY = "pam_trie_pending_v2";
+const PAM_TRIE_CACHE_KEY   = "pam_trie_cache_v2";
+const ASL_TRIE_PENDING_KEY = "asl_trie_pending_v2";
+const ASL_TRIE_CACHE_KEY   = "asl_trie_cache_v2";
+
+/* OFFLINE KEYS TRIE KG */
+const TRIE_KG_PENDING_KEY = "trie_kg_pending_v1";
+const TRIE_KG_CACHE_KEY   = "trie_kg_cache_v1";
 
 const $ = (id)=>document.getElementById(id);
 const r1 = (x)=>Math.round(x*10)/10;
@@ -431,23 +399,26 @@ let currentUser = null;
 let isAdminUser = false;
 let lastHistorySource = "LIVE";
 
-/* OFFLINE KEYS (pesées) */
-const PENDING_KEY = "pesees_pending_v5";
-const HISTORY_CACHE_KEY = "pesees_history_cache_v2";
-const CACHE_META_KEY = "pesees_history_cache_meta_v2";
-
 /* UI */
-function setStatus(msg){ const el=$("status"); if(el) el.textContent = msg || ""; }
+function setStatus(msg){ $("status").textContent = msg || ""; }
 function setLoginMsg(msg){ $("loginMsg").textContent = msg || ""; }
-function refreshNetwork(){ $("badgeNet").textContent = "Réseau : " + (navigator.onLine ? "OK" : "HORS-LIGNE"); }
-function getHistoryMeta(){ try{ return JSON.parse(localStorage.getItem(CACHE_META_KEY) || "null"); } catch { return null; } }
+
+function refreshNetwork(){
+  $("badgeNet").textContent = "Réseau : " + (navigator.onLine ? "OK" : "HORS-LIGNE");
+}
 function setStoreBadge(){
   const meta = getHistoryMeta();
   const info = meta?.updatedAt ? new Date(meta.updatedAt).toLocaleString() : "—";
   $("badgeStore").textContent = `Données : ${lastHistorySource} (${info})`;
 }
 
-window.addEventListener("online", ()=>{ refreshNetwork(); syncPending(); syncPamTriePending(); syncAslTriePending(); syncTrieKgPending(); });
+window.addEventListener("online", ()=>{
+  refreshNetwork();
+  syncPending();
+  syncPamTriePending();
+  syncAslTriePending();
+  syncTrieKgPending();
+});
 window.addEventListener("offline", refreshNetwork);
 
 /* Admin UI */
@@ -456,8 +427,6 @@ function setAdminUI(){
   $("adminPanel").style.display = isAdminUser ? "block" : "none";
   $("thAdmin").style.display = isAdminUser ? "table-cell" : "none";
 }
-
-/* Admin check */
 async function checkAdmin(){
   const { data, error } = await supabase.rpc("is_admin");
   if(error) throw error;
@@ -471,8 +440,6 @@ function show(p){
   $("pageTrie").style.display  = (p==="trie")  ? "block" : "none";
 
   if(p==="hist"){
-    if(!$("recapDate").value) $("recapDate").value = ymdToday();
-    buildRecap();
     loadCities();
     loadData();
     renderPending();
@@ -481,6 +448,7 @@ function show(p){
   }
   if(p==="trie"){
     loadTrieAll();
+    calcKg();
   }
 }
 
@@ -498,16 +466,39 @@ function calc(){
   $("brut").addEventListener(ev, calc);
 });
 
-/* OFFLINE pending pesées */
-function getPending(){ try{ return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); } catch { return []; } }
-function setPending(arr){ localStorage.setItem(PENDING_KEY, JSON.stringify(arr)); $("pendingCount").textContent = String(arr.length); }
+/* Calcul net KG */
+function calcKg(){
+  const nb = Math.max(1, Math.floor(num($("kgNb").value)));
+  const brut = num($("kgBrut").value);
+  const tare = (KG_TARE[$("kgBac").value] || 0) * nb;
+  const net = Math.max(0, brut - tare);
+  $("kgNet").textContent = r1(net);
+}
+["input","change"].forEach(ev=>{
+  $("kgNb").addEventListener(ev, calcKg);
+  $("kgBrut").addEventListener(ev, calcKg);
+  $("kgBac").addEventListener(ev, calcKg);
+  $("kgCat").addEventListener(ev, calcKg);
+});
+
+/* ---- OFFLINE pesées ---- */
+function getPending(){ try{ return JSON.parse(localStorage.getItem(PENDING_KEY) || "[]"); }catch{ return []; } }
+function setPending(arr){
+  localStorage.setItem(PENDING_KEY, JSON.stringify(arr));
+  $("pendingCount").textContent = String(arr.length);
+}
 function addPending(row){ const arr=getPending(); arr.unshift(row); setPending(arr); }
 function removePending(client_id){ setPending(getPending().filter(x=>x.client_id !== client_id)); }
+
 function renderPending(){
-  const arr=getPending();
+  const arr = getPending();
   $("pendingCount").textContent = String(arr.length);
-  const tb=$("pendingTable"); tb.innerHTML="";
-  if(!arr.length){ tb.innerHTML=`<tr><td colspan="6" class="muted">Aucune ligne en attente</td></tr>`; return; }
+  const tb = $("pendingTable");
+  tb.innerHTML = "";
+  if(!arr.length){
+    tb.innerHTML = `<tr><td colspan="7">Aucune ligne en attente</td></tr>`;
+    return;
+  }
   arr.forEach(x=>{
     tb.innerHTML += `
       <tr>
@@ -516,6 +507,7 @@ function renderPending(){
         <td>${x.type}</td>
         <td class="right">${x.nb}</td>
         <td class="right">${x.net}</td>
+        <td>${x.user_email||"—"}</td>
         <td class="right"><button class="smallBtn danger" onclick="deletePending('${x.client_id}')">Suppr</button></td>
       </tr>`;
   });
@@ -525,46 +517,47 @@ function deletePending(client_id){
   removePending(client_id);
   renderPending();
   renderMixedHistory();
-  buildRecap();
 }
 
-/* Cache pesées */
-function getHistoryCache(){ try{ return JSON.parse(localStorage.getItem(HISTORY_CACHE_KEY) || "[]"); } catch { return []; } }
+/* ---- HISTORY CACHE pesées ---- */
+function getHistoryCache(){ try{ return JSON.parse(localStorage.getItem(HISTORY_CACHE_KEY) || "[]"); }catch{ return []; } }
 function setHistoryCache(rows, source){
   localStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(rows || []));
   localStorage.setItem(CACHE_META_KEY, JSON.stringify({ updatedAt: Date.now(), source: source || "LIVE" }));
 }
+function getHistoryMeta(){ try{ return JSON.parse(localStorage.getItem(CACHE_META_KEY) || "null"); }catch{ return null; } }
 
-/* Render mix pesées */
+/* ---- MIXED RENDER pesées ---- */
 function renderMixedHistory(){
   const pending = getPending().map(p=>({
-    id:null,
-    created_at:new Date(p.local_created_at).toISOString(),
-    ville:p.ville,
-    type:p.type,
-    nb:p.nb,
-    net:p.net,
-    user_email:p.user_email || null,
-    _source:"ATTENTE",
-    _client_id:p.client_id
+    id: null,
+    created_at: new Date(p.local_created_at).toISOString(),
+    ville: p.ville,
+    type: p.type,
+    nb: p.nb,
+    net: p.net,
+    user_email: p.user_email || null,
+    _source: "ATTENTE",
+    _client_id: p.client_id
   }));
 
   const cached = getHistoryCache().map(r=>({
     ...r,
-    _source:(lastHistorySource==="LIVE" ? "LIVE" : "CACHE")
+    _source: (lastHistorySource === "LIVE" ? "LIVE" : "CACHE")
   }));
 
-  const all=[...pending,...cached].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-  const tb=$("histMix"); tb.innerHTML="";
+  const all = [...pending, ...cached].sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
+
+  const tb = $("histMix");
+  tb.innerHTML = "";
   if(!all.length){
-    tb.innerHTML = `<tr><td colspan="${isAdminUser?8:7}" class="muted">Aucune donnée</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="${isAdminUser?8:7}">Aucune donnée</td></tr>`;
     return;
   }
 
   all.forEach(r=>{
-    const src = (r._source==="ATTENTE") ? "ATTENTE" : (lastHistorySource==="LIVE" ? "LIVE" : "CACHE");
     const adminCell = isAdminUser
-      ? (r._source==="ATTENTE" ? `<td class="muted">—</td>` : `<td><button class="smallBtn danger" onclick="deleteRow(${r.id})">Suppr</button></td>`)
+      ? (r._source==="ATTENTE" ? `<td>—</td>` : `<td><button class="smallBtn danger" onclick="deleteRow(${r.id})">Suppr</button></td>`)
       : "";
 
     tb.innerHTML += `
@@ -574,27 +567,27 @@ function renderMixedHistory(){
         <td>${r.type}</td>
         <td class="right">${r.nb}</td>
         <td class="right">${r.net}</td>
-        <td>${r.user_email || "—"}</td>
-        <td>${src}</td>
+        <td>${r.user_email||"—"}</td>
+        <td>${r._source}</td>
         ${adminCell}
       </tr>`;
   });
 }
-
-/* SYNC pending pesées */
+/* ✅ SYNC pending pesées -> Supabase */
 async function syncPending(){
-  const arr=getPending();
+  const arr = getPending();
   $("pendingCount").textContent = String(arr.length);
   if(!arr.length) return;
+
   if(!navigator.onLine) return;
 
-  const { data:u } = await supabase.auth.getUser();
+  const { data: u } = await supabase.auth.getUser();
   if(!u?.user) return;
 
-  const toSend=[...arr].reverse();
+  const toSend = [...arr].reverse();
   for(const row of toSend){
     try{
-      const payload={
+      const payload = {
         client_id: row.client_id,
         ville: row.ville,
         type: row.type,
@@ -604,50 +597,47 @@ async function syncPending(){
         net: row.net,
         user_email: row.user_email || (u.user.email||null)
       };
-      const { error } = await supabase.from("pesees").upsert(payload,{ onConflict:"client_id" });
+      const { error } = await supabase.from("pesees").upsert(payload, { onConflict: "client_id" });
       if(error) throw error;
       removePending(row.client_id);
-    }catch(e){
-      setStatus("❌ SYNC stoppé : " + (e?.message || String(e)));
+    }catch{
       break;
     }
   }
   renderPending();
   await loadData();
-  await buildRecap();
   renderMixedHistory();
 }
 
-/* Login / logout (avec message d’erreur clair) */
-function friendlyAuthError(e){
-  const m = (e?.message || String(e) || "").toLowerCase();
-  if(m.includes("invalid api key")) return "Clé API invalide (cache/PWA). Efface stockage + désinstalle la PWA puis recharge.";
-  if(m.includes("email logins are disabled")) return "Email login désactivé dans Supabase (Auth > Providers > Email). Active-le puis Save.";
-  if(m.includes("invalid login credentials")) return "Identifiants incorrects (email/mot de passe).";
-  if(m.includes("email not confirmed")) return "Email pas confirmé (si Confirm email est activé).";
-  return e?.message || String(e);
+/* Login / logout + message d'erreur clair */
+function prettyAuthError(msg){
+  const m = String(msg||"");
+  if(m.toLowerCase().includes("invalid api key")) return "❌ Clé Supabase invalide (cache/PWA). Vide le cache ou désactive le service worker.";
+  if(m.toLowerCase().includes("email logins are disabled")) return "❌ Connexion Email désactivée dans Supabase (Auth > Providers > Email).";
+  if(m.toLowerCase().includes("invalid login credentials")) return "❌ Email ou mot de passe incorrect.";
+  if(m.toLowerCase().includes("user not found")) return "❌ Utilisateur introuvable.";
+  return "❌ " + m;
 }
 
 async function login(){
   try{
-    const email=$("email").value.trim();
-    const password=$("password").value;
+    const email = $("email").value.trim();
+    const password = $("password").value;
     if(!email || !password) return setLoginMsg("Email + mot de passe.");
 
     setLoginMsg("Connexion…");
-    const { data:res, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if(error) throw error;
-    if(!res?.session) throw new Error("Connexion refusée (pas de session).");
 
     const { data } = await supabase.auth.getUser();
     currentUser = data?.user || null;
 
-    try{ isAdminUser = await checkAdmin(); }catch{ isAdminUser=false; }
+    try { isAdminUser = await checkAdmin(); } catch { isAdminUser = false; }
     setAdminUI();
 
     $("badgeUser").textContent = currentUser?.email ? ("Connecté : " + currentUser.email) : "Connecté";
-    $("loginScreen").style.display="none";
-    $("app").style.display="block";
+    $("loginScreen").style.display = "none";
+    $("app").style.display = "block";
 
     await loadCities();
     await loadData();
@@ -657,348 +647,253 @@ async function login(){
     await loadTrieKgData();
     loadTrieAll();
 
-    if(!$("recapDate").value) $("recapDate").value = ymdToday();
     setLoginMsg("");
-    setStatus("✅ Connecté");
-
     syncPending();
     syncPamTriePending();
     syncAslTriePending();
     syncTrieKgPending();
     show("pesee");
   }catch(e){
-    setLoginMsg("❌ " + friendlyAuthError(e));
+    setLoginMsg(prettyAuthError(e?.message || String(e)));
   }
 }
 
 async function logout(){
-  try{ await supabase.auth.signOut(); location.reload(); }
-  catch(e){ setStatus("❌ " + (e?.message || String(e))); }
+  try{
+    await supabase.auth.signOut();
+    location.reload();
+  }catch(e){
+    setLoginMsg("❌ " + (e?.message || String(e)));
+  }
 }
 
 /* Villes */
 async function loadCities(){
   try{
-    const { data, error } = await supabase.from("villes").select("id, nom").order("nom",{ascending:true}).limit(500);
+    const { data, error } = await supabase.from("villes").select("id, nom").order("nom", { ascending:true }).limit(500);
     if(error) throw error;
 
-    const sel=$("ville"); sel.innerHTML="";
+    const sel = $("ville");
+    sel.innerHTML = "";
     (data||[]).forEach(v=>{
-      const opt=document.createElement("option");
-      opt.value=v.nom; opt.textContent=v.nom;
+      const opt = document.createElement("option");
+      opt.value = v.nom;
+      opt.textContent = v.nom;
       sel.appendChild(opt);
     });
-    if(!sel.options.length) sel.innerHTML="<option>—</option>";
+    if(!sel.options.length) sel.innerHTML = "<option>—</option>";
 
-    const tb=$("citiesAdmin"); tb.innerHTML="";
-    if(!isAdminUser){ tb.innerHTML=`<tr><td colspan="2" class="muted">Admin uniquement</td></tr>`; return; }
-
+    const tb = $("citiesAdmin");
+    tb.innerHTML = "";
+    if(!isAdminUser){
+      tb.innerHTML = `<tr><td colspan="2">Admin uniquement</td></tr>`;
+      return;
+    }
     (data||[]).forEach(v=>{
       tb.innerHTML += `
         <tr>
           <td>${v.nom}</td>
-          <td class="right"><button class="smallBtn danger" onclick="deleteCity(${v.id}, '${String(v.nom).replace(/'/g,"&#39;")}')">Suppr</button></td>
+          <td class="right">
+            <button class="smallBtn danger" onclick="deleteCity(${v.id}, '${String(v.nom).replace(/'/g,"&#39;")}')">Suppr</button>
+          </td>
         </tr>`;
     });
-    if(!(data||[]).length) tb.innerHTML=`<tr><td colspan="2" class="muted">Aucune ville</td></tr>`;
+    if(!(data||[]).length) tb.innerHTML = `<tr><td colspan="2">Aucune ville</td></tr>`;
   }catch(e){
-    setStatus("❌ VILLES: " + (e?.message || String(e)));
+    // silencieux
   }
 }
-
 async function addCity(){
   if(!isAdminUser) return alert("Admin uniquement");
-  const name=($("newCity").value||"").trim();
+  const name = ($("newCity").value || "").trim();
   if(!name) return alert("Entre un nom de ville.");
-  try{
-    const { error } = await supabase.from("villes").insert({ nom:name });
-    if(error) throw error;
-    $("newCity").value="";
-    await loadCities();
-  }catch(e){ setStatus("❌ " + (e?.message || String(e))); }
+  const { error } = await supabase.from("villes").insert({ nom: name });
+  if(error) return alert(error.message);
+  $("newCity").value = "";
+  await loadCities();
 }
-
 async function deleteCity(id, nom){
   if(!isAdminUser) return alert("Admin uniquement");
-  if(!confirm("Supprimer la ville : "+nom+" ?")) return;
-  try{
-    const { error } = await supabase.from("villes").delete().eq("id", id);
-    if(error) throw error;
-    await loadCities();
-  }catch(e){ setStatus("❌ " + (e?.message || String(e))); }
+  if(!confirm("Supprimer la ville : " + nom + " ?")) return;
+  const { error } = await supabase.from("villes").delete().eq("id", id);
+  if(error) return alert(error.message);
+  await loadCities();
 }
 
-/* Enregistrer pesée (avec opérateur) */
+/* ✅ Enregistrer pesée : upsert client_id + user_email */
 async function saveSafe(){
-  calc();
-  const nb = Math.max(1, Math.floor(num($("nb").value)));
-  const brut = num($("brut").value);
-  const tare = (T[$("type").value] || 0) * nb;
-  const net = Math.max(0, brut - tare);
-  const ville = ($("ville").value || "").trim();
-  const type = A[$("type").value];
-
-  if(!ville || ville==="—") return alert("Choisis une ville.");
-  if(brut<=0) return alert("Entre un poids brut.");
-  if(brut<tare) return alert("Brut inférieur à la tare.");
-
-  const ok = confirm(
-    "Confirmer ?\n\n" +
-    "Ville: " + ville + "\n" +
-    "Type: " + type + " | Nb: " + nb + "\n" +
-    "Brut: " + r1(brut) + " kg\n" +
-    "Tare: " + r1(tare) + " kg\n" +
-    "NET:  " + r1(net) + " kg"
-  );
-  if(!ok) return;
-
-  const client_id="p_"+Date.now()+"_"+Math.random().toString(16).slice(2);
-
   try{
-    const { data:u } = await supabase.auth.getUser();
-    const operator = u?.user?.email || null;
+    calc();
+    const nb = Math.max(1, Math.floor(num($("nb").value)));
+    const brut = num($("brut").value);
+    const tare = (T[$("type").value] || 0) * nb;
+    const net = Math.max(0, brut - tare);
+    const ville = ($("ville").value || "").trim();
+    const type = A[$("type").value];
 
-    const payload={ client_id, ville, type, nb, brut:r1(brut), tare:r1(tare), net:r1(net), user_email: operator };
+    if(!ville || ville==="—") return alert("Choisis une ville.");
+    if(brut<=0) return alert("Entre un poids brut.");
+    if(brut<tare) return alert("Brut inférieur à la tare.");
 
-    const { error } = await supabase.from("pesees").upsert(payload,{ onConflict:"client_id" });
+    const ok = confirm(
+      "Confirmer ?\n\n" +
+      "Ville: " + ville + "\n" +
+      "Type: " + type + " | Nb: " + nb + "\n" +
+      "Brut: " + r1(brut) + " kg\n" +
+      "Tare: " + r1(tare) + " kg\n" +
+      "NET:  " + r1(net) + " kg"
+    );
+    if(!ok) return;
+
+    const { data: u } = await supabase.auth.getUser();
+    const user_email = u?.user?.email || null;
+
+    const client_id = "p_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+    const payload = { client_id, ville, type, nb, brut:r1(brut), tare:r1(tare), net:r1(net), user_email };
+
+    const { error } = await supabase.from("pesees").upsert(payload, { onConflict: "client_id" });
     if(error) throw error;
 
-    $("brut").value="";
-    $("nb").value="1";
+    $("brut").value = "";
     calc();
-
     await loadData();
-    await buildRecap();
     renderMixedHistory();
     show("pesee");
-  }catch(e){
-    // offline => pending
-    let operator = null;
-    try{ const { data:u } = await supabase.auth.getUser(); operator = u?.user?.email || null; }catch{}
+  }catch{
+    const nb = Math.max(1, Math.floor(num($("nb").value)));
+    const brut = num($("brut").value);
+    const tare = (T[$("type").value] || 0) * nb;
+    const net = Math.max(0, brut - tare);
+    const ville = ($("ville").value || "").trim();
+    const type = A[$("type").value];
 
-    addPending({
-      client_id,
-      local_created_at: Date.now(),
-      ville, type, nb,
-      brut:r1(brut), tare:r1(tare), net:r1(net),
-      user_email: operator
-    });
+    const user_email = currentUser?.email || null;
+    const client_id = "p_" + Date.now() + "_" + Math.random().toString(16).slice(2);
 
-    $("brut").value="";
-    $("nb").value="1";
+    addPending({ client_id, local_created_at: Date.now(), ville, type, nb, brut:r1(brut), tare:r1(tare), net:r1(net), user_email });
+    $("brut").value = "";
     calc();
-
     renderPending();
     renderMixedHistory();
-    buildRecap();
     show("pesee");
   }
 }
 
-/* Charger historique pesées -> cache */
+/* Historique Supabase -> cache */
 async function loadData(){
   try{
     const { data, error } = await supabase
       .from("pesees")
       .select("id, created_at, ville, type, nb, net, client_id, user_email")
-      .order("created_at",{ascending:false})
+      .order("created_at", { ascending:false })
       .limit(1500);
 
     if(error) throw error;
-    lastHistorySource="LIVE";
-    setHistoryCache(data||[],"LIVE");
+
+    lastHistorySource = "LIVE";
+    setHistoryCache(data || [], "LIVE");
     setStoreBadge();
     renderMixedHistory();
-  }catch(e){
-    lastHistorySource="CACHE";
+  }catch{
+    lastHistorySource = "CACHE";
     setStoreBadge();
     renderMixedHistory();
   }
 }
 
-/* Admin delete / clear (utilise RPC côté SQL pour vider vraiment) */
+/* Admin delete / clear */
 async function deleteRow(id){
   if(!isAdminUser) return alert("Admin uniquement");
   if(!confirm("Supprimer cette ligne ?")) return;
   const { error } = await supabase.from("pesees").delete().eq("id", id);
   if(error) return alert(error.message);
-  await loadData(); await buildRecap(); renderMixedHistory();
+  await loadData();
+  renderMixedHistory();
 }
 async function clearAll(){
   if(!isAdminUser) return alert("Admin uniquement");
-  if(!confirm("⚠️ Vider TOUT l’historique pesées ?")) return;
-  const { error } = await supabase.rpc("clear_pesees");
+  if(!confirm("⚠️ Vider TOUT l’historique ?")) return;
+  // ⚠️ IMPORTANT: il faut une policy delete qui autorise (sinon ça ne vide pas)
+  const { error } = await supabase.from("pesees").delete().neq("id", -1);
   if(error) return alert(error.message);
-  await loadData(); await buildRecap(); renderMixedHistory();
+  await loadData();
+  renderMixedHistory();
 }
 
-/* Récap */
-function ymdToday(){
-  const d=new Date();
-  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), da=String(d.getDate()).padStart(2,"0");
-  return `${y}-${m}-${da}`;
-}
-function recapToday(){ $("recapDate").value=ymdToday(); buildRecap(); }
-function dayRangeLocal(ymd){
-  const [y,m,d]=ymd.split("-").map(Number);
-  const start=new Date(y,m-1,d,0,0,0,0).getTime();
-  const end=new Date(y,m-1,d+1,0,0,0,0).getTime();
-  return { start, end };
-}
-function inLocalDay(isoOrMs, start, end){
-  const t = typeof isoOrMs==="number" ? isoOrMs : new Date(isoOrMs).getTime();
-  return t>=start && t<end;
-}
-function recapFromRows(rows, pendingRows){
-  const totalAll={PAM:0,ASL:0,ABJ:0,F:0,HF:0};
-  const byCity={};
-  const add=(ville,type,net)=>{
-    const t=String(type||"").toUpperCase();
-    if(!TYPES.includes(t)) return;
-    const n=num(net);
-    totalAll[t]+=n;
-    const v=ville||"—";
-    if(!byCity[v]) byCity[v]={PAM:0,ASL:0,ABJ:0,F:0,HF:0};
-    byCity[v][t]+=n;
-  };
-  (rows||[]).forEach(r=>add(r.ville,r.type,r.net));
-  (pendingRows||[]).forEach(p=>add(p.ville,p.type,p.net));
-  return { totalAll, byCity };
-}
-function renderRecapTables(totalAll, byCity){
-  const sumAll=TYPES.reduce((s,k)=>s+totalAll[k],0);
-  $("recapAll").innerHTML = `
-    <tr>
-      <td class="right">${r1(totalAll.PAM)}</td>
-      <td class="right">${r1(totalAll.ASL)}</td>
-      <td class="right">${r1(totalAll.ABJ)}</td>
-      <td class="right">${r1(totalAll.F)}</td>
-      <td class="right">${r1(totalAll.HF)}</td>
-      <td class="right"><b>${r1(sumAll)}</b></td>
-    </tr>`;
-  const villes=Object.keys(byCity).sort((a,b)=>a.localeCompare(b,"fr"));
-  if(!villes.length){ $("recapByCity").innerHTML=`<tr><td colspan="7" class="muted">Aucune donnée</td></tr>`; return; }
-  $("recapByCity").innerHTML = villes.map(v=>{
-    const o=byCity[v]; const sum=TYPES.reduce((s,k)=>s+o[k],0);
-    return `
-      <tr>
-        <td>${v}</td>
-        <td class="right">${r1(o.PAM)}</td>
-        <td class="right">${r1(o.ASL)}</td>
-        <td class="right">${r1(o.ABJ)}</td>
-        <td class="right">${r1(o.F)}</td>
-        <td class="right">${r1(o.HF)}</td>
-        <td class="right"><b>${r1(sum)}</b></td>
-      </tr>`;
-  }).join("");
-}
-async function buildRecap(){
-  try{
-    const date=$("recapDate").value||ymdToday();
-    $("recapDate").value=date;
-
-    const [y,m,d]=date.split("-").map(Number);
-    const s=new Date(y,m-1,d,0,0,0,0);
-    const e=new Date(y,m-1,d+1,0,0,0,0);
-
-    try{
-      const { data, error } = await supabase
-        .from("pesees")
-        .select("ville,type,net,created_at")
-        .gte("created_at", s.toISOString())
-        .lt("created_at", e.toISOString())
-        .limit(5000);
-      if(error) throw error;
-
-      const { start, end } = dayRangeLocal(date);
-      const pendToday = getPending().filter(p=>inLocalDay(p.local_created_at,start,end));
-      const recap=recapFromRows(data||[], pendToday);
-      renderRecapTables(recap.totalAll, recap.byCity);
-    }catch{
-      const { start, end } = dayRangeLocal(date);
-      const cache=getHistoryCache().filter(r=>inLocalDay(r.created_at,start,end));
-      const pend=getPending().filter(p=>inLocalDay(p.local_created_at,start,end));
-      const recap=recapFromRows(cache, pend);
-      renderRecapTables(recap.totalAll, recap.byCity);
-    }
-  }catch(e){
-    $("recapAll").innerHTML = `<tr><td colspan="6">Erreur: ${(e?.message||String(e))}</td></tr>`;
-    $("recapByCity").innerHTML = "";
-  }
-}
-
-/* ====== TRIE helpers ====== */
+/* =========================
+   TRIE +/- (PAM / ASL)
+========================= */
 function ymdLocalFromISO(iso){
   const d=new Date(iso);
-  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), da=String(d.getDate()).padStart(2,"0");
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const da=String(d.getDate()).padStart(2,"0");
   return `${y}-${m}-${da}`;
 }
+function getArr(key){ try{ return JSON.parse(localStorage.getItem(key)||"[]"); }catch{ return []; } }
+function setArr(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
 
-/* ====== PAM TRIE (+1/-1) ====== */
-const PAM_TRIE_PENDING_KEY="pam_trie_pending_v2";
-const PAM_TRIE_CACHE_KEY="pam_trie_cache_v2";
-const PAM_TRIE_META_KEY="pam_trie_cache_meta_v2";
-let lastPamTrieSource="LIVE";
-
-function getPamTriePending(){ try{return JSON.parse(localStorage.getItem(PAM_TRIE_PENDING_KEY)||"[]");}catch{return[];} }
-function setPamTriePending(arr){ localStorage.setItem(PAM_TRIE_PENDING_KEY, JSON.stringify(arr)); $("pamTriePendingCount").textContent=String(arr.length); }
-function addPamTriePending(row){ const arr=getPamTriePending(); arr.unshift(row); setPamTriePending(arr); }
-function removePamTriePending(client_id){ setPamTriePending(getPamTriePending().filter(x=>x.client_id!==client_id)); }
-function getPamTrieCache(){ try{return JSON.parse(localStorage.getItem(PAM_TRIE_CACHE_KEY)||"[]");}catch{return[];} }
-function setPamTrieCache(rows, source){ localStorage.setItem(PAM_TRIE_CACHE_KEY, JSON.stringify(rows||[])); localStorage.setItem(PAM_TRIE_META_KEY, JSON.stringify({updatedAt:Date.now(), source:source||"LIVE"})); }
-function getPamTrieMeta(){ try{return JSON.parse(localStorage.getItem(PAM_TRIE_META_KEY)||"null");}catch{return null;} }
-
-async function addPamTrie(delta){
+async function addDelta(table, pendingKey, cacheKey, delta){
   if(delta!==1 && delta!==-1) return;
-  const client_id="t_pam_"+Date.now()+"_"+Math.random().toString(16).slice(2);
+  const client_id = "t_"+table+"_"+Date.now()+"_"+Math.random().toString(16).slice(2);
   try{
-    const { data:u } = await supabase.auth.getUser();
+    const { data: u } = await supabase.auth.getUser();
     if(!u?.user) return alert("Connecte-toi.");
     if(!navigator.onLine) throw new Error("offline");
 
-    const payload={ client_id, delta, user_email:u.user.email||null };
-    const { error } = await supabase.from("pam_trie").upsert(payload,{ onConflict:"client_id" });
+    const payload = { client_id, delta, user_email: u.user.email||null };
+    const { error } = await supabase.from(table).upsert(payload,{ onConflict:"client_id" });
     if(error) throw error;
-
-    await loadPamTrieData(); loadTrieAll();
+    await loadDelta(table, cacheKey);
+    loadTrieAll();
   }catch{
-    addPamTriePending({ client_id, local_created_at:Date.now(), delta });
+    const p = getArr(pendingKey);
+    p.unshift({ client_id, local_created_at: Date.now(), delta, user_email: currentUser?.email||null });
+    setArr(pendingKey, p);
     loadTrieAll();
   }
 }
+async function syncDelta(table, pendingKey, cacheKey){
+  const p = getArr(pendingKey);
+  if(!p.length) return;
+  if(!navigator.onLine) return;
 
-async function syncPamTriePending(){
-  const arr=getPamTriePending();
-  $("pamTriePendingCount").textContent=String(arr.length);
-  if(!arr.length || !navigator.onLine) return;
-
-  const { data:u } = await supabase.auth.getUser();
+  const { data: u } = await supabase.auth.getUser();
   if(!u?.user) return;
 
-  const toSend=[...arr].reverse();
+  const toSend=[...p].reverse();
   for(const row of toSend){
     try{
-      const payload={ client_id:row.client_id, delta:row.delta, user_email:u.user.email||null };
-      const { error } = await supabase.from("pam_trie").upsert(payload,{ onConflict:"client_id" });
+      const payload={ client_id: row.client_id, delta: row.delta, user_email: row.user_email || (u.user.email||null) };
+      const { error } = await supabase.from(table).upsert(payload,{ onConflict:"client_id" });
       if(error) throw error;
-      removePamTriePending(row.client_id);
+      setArr(pendingKey, getArr(pendingKey).filter(x=>x.client_id!==row.client_id));
     }catch{ break; }
   }
-  await loadPamTrieData(); loadTrieAll();
+  await loadDelta(table, cacheKey);
+  loadTrieAll();
 }
-
-async function loadPamTrieData(){
+async function loadDelta(table, cacheKey){
   try{
-    const { data, error } = await supabase.from("pam_trie").select("id, created_at, delta, client_id").order("created_at",{ascending:false}).limit(2000);
+    const { data, error } = await supabase
+      .from(table)
+      .select("id, created_at, delta, client_id, user_email")
+      .order("created_at",{ ascending:false })
+      .limit(2000);
     if(error) throw error;
-    lastPamTrieSource="LIVE";
-    setPamTrieCache(data||[],"LIVE");
-  }catch{ lastPamTrieSource="CACHE"; }
+    setArr(cacheKey, data||[]);
+  }catch{
+    // cache only
+  }
 }
-
-function buildPamTrieMerged(){
-  const pending=getPamTriePending().map(p=>({ created_at:new Date(p.local_created_at).toISOString(), delta:p.delta, _source:"ATTENTE" }));
-  const cached=getPamTrieCache().map(r=>({ ...r, _source:(lastPamTrieSource==="LIVE"?"LIVE":"CACHE") }));
+function mergeDelta(pendingKey, cacheKey){
+  const pending = getArr(pendingKey).map(p=>({
+    created_at:new Date(p.local_created_at).toISOString(),
+    delta:p.delta,
+    user_email:p.user_email||null,
+    _source:"ATTENTE"
+  }));
+  const cached = getArr(cacheKey).map(r=>({ ...r, _source:"LIVE" }));
   const all=[...pending,...cached].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
 
   const totals={};
@@ -1006,339 +901,240 @@ function buildPamTrieMerged(){
     const day=ymdLocalFromISO(r.created_at);
     totals[day]=(totals[day]||0)+(Number(r.delta)||0);
   }
-  const totalsArr=Object.keys(totals).sort((a,b)=>b.localeCompare(a)).map(day=>({ day, total:totals[day] }));
+  const totalsArr=Object.keys(totals).sort((a,b)=>b.localeCompare(a)).map(day=>({ day, total: totals[day] }));
   return { all, totalsArr };
 }
+function renderDelta(totalsId, histId, pendingCountId, pendingKey, cacheKey){
+  if(pendingCountId) $(pendingCountId).textContent = String(getArr(pendingKey).length);
 
-function renderPamTrieTables(totalsId, histId){
-  const { all, totalsArr } = buildPamTrieMerged();
-  const tbT=$(totalsId); tbT.innerHTML="";
-  tbT.innerHTML = totalsArr.length
+  const { all, totalsArr } = mergeDelta(pendingKey, cacheKey);
+
+  const tbT=$(totalsId); tbT.innerHTML = totalsArr.length
     ? totalsArr.map(r=>`<tr><td>${r.day}</td><td class="right"><b>${r.total}</b></td></tr>`).join("")
-    : `<tr><td colspan="2" class="muted">Aucune donnée</td></tr>`;
+    : `<tr><td colspan="2">Aucune donnée</td></tr>`;
 
-  const tbH=$(histId); tbH.innerHTML="";
-  tbH.innerHTML = all.length
+  const tbH=$(histId); tbH.innerHTML = all.length
     ? all.slice(0,400).map(r=>{
         const dt=new Date(r.created_at).toLocaleString();
         const v=(r.delta>0?("+"+r.delta):String(r.delta));
-        return `<tr><td>${dt}</td><td class="right"><b>${v}</b></td><td>${r._source}</td></tr>`;
+        return `<tr><td>${dt}</td><td class="right"><b>${v}</b></td><td>${r.user_email||"—"}</td><td>${r._source}</td></tr>`;
       }).join("")
-    : `<tr><td colspan="3" class="muted">Aucune donnée</td></tr>`;
+    : `<tr><td colspan="4">Aucune donnée</td></tr>`;
 }
 
-/* ====== ASL TRIE (+1/-1) ====== */
-const ASL_TRIE_PENDING_KEY="asl_trie_pending_v2";
-const ASL_TRIE_CACHE_KEY="asl_trie_cache_v2";
-const ASL_TRIE_META_KEY="asl_trie_cache_meta_v2";
-let lastAslTrieSource="LIVE";
+/* wrappers */
+function addPamTrie(d){ return addDelta("pam_trie", PAM_TRIE_PENDING_KEY, PAM_TRIE_CACHE_KEY, d); }
+function addAslTrie(d){ return addDelta("asl_trie", ASL_TRIE_PENDING_KEY, ASL_TRIE_CACHE_KEY, d); }
+function syncPamTriePending(){ return syncDelta("pam_trie", PAM_TRIE_PENDING_KEY, PAM_TRIE_CACHE_KEY); }
+function syncAslTriePending(){ return syncDelta("asl_trie", ASL_TRIE_PENDING_KEY, ASL_TRIE_CACHE_KEY); }
+function loadPamTrieData(){ return loadDelta("pam_trie", PAM_TRIE_CACHE_KEY); }
+function loadAslTrieData(){ return loadDelta("asl_trie", ASL_TRIE_CACHE_KEY); }
 
-function getAslTriePending(){ try{return JSON.parse(localStorage.getItem(ASL_TRIE_PENDING_KEY)||"[]");}catch{return[];} }
-function setAslTriePending(arr){ localStorage.setItem(ASL_TRIE_PENDING_KEY, JSON.stringify(arr)); $("aslTriePendingCount").textContent=String(arr.length); }
-function addAslTriePending(row){ const arr=getAslTriePending(); arr.unshift(row); setAslTriePending(arr); }
-function removeAslTriePending(client_id){ setAslTriePending(getAslTriePending().filter(x=>x.client_id!==client_id)); }
-function getAslTrieCache(){ try{return JSON.parse(localStorage.getItem(ASL_TRIE_CACHE_KEY)||"[]");}catch{return[];} }
-function setAslTrieCache(rows, source){ localStorage.setItem(ASL_TRIE_CACHE_KEY, JSON.stringify(rows||[])); localStorage.setItem(ASL_TRIE_META_KEY, JSON.stringify({updatedAt:Date.now(), source:source||"LIVE"})); }
-function getAslTrieMeta(){ try{return JSON.parse(localStorage.getItem(ASL_TRIE_META_KEY)||"null");}catch{return null;} }
+/* =========================
+   TRIE KG (catégorie + tare)
+========================= */
+function getTrieKgPending(){ return getArr(TRIE_KG_PENDING_KEY); }
+function setTrieKgPending(a){ setArr(TRIE_KG_PENDING_KEY, a); $("trieKgPendingCount").textContent = String(a.length); }
+function getTrieKgCache(){ return getArr(TRIE_KG_CACHE_KEY); }
+function setTrieKgCache(a){ setArr(TRIE_KG_CACHE_KEY, a); }
 
-async function addAslTrie(delta){
-  if(delta!==1 && delta!==-1) return;
-  const client_id="t_asl_"+Date.now()+"_"+Math.random().toString(16).slice(2);
-  try{
-    const { data:u } = await supabase.auth.getUser();
-    if(!u?.user) return alert("Connecte-toi.");
-    if(!navigator.onLine) throw new Error("offline");
-
-    const payload={ client_id, delta, user_email:u.user.email||null };
-    const { error } = await supabase.from("asl_trie").upsert(payload,{ onConflict:"client_id" });
-    if(error) throw error;
-
-    await loadAslTrieData(); loadTrieAll();
-  }catch{
-    addAslTriePending({ client_id, local_created_at:Date.now(), delta });
-    loadTrieAll();
-  }
-}
-
-async function syncAslTriePending(){
-  const arr=getAslTriePending();
-  $("aslTriePendingCount").textContent=String(arr.length);
-  if(!arr.length || !navigator.onLine) return;
-
-  const { data:u } = await supabase.auth.getUser();
-  if(!u?.user) return;
-
-  const toSend=[...arr].reverse();
-  for(const row of toSend){
-    try{
-      const payload={ client_id:row.client_id, delta:row.delta, user_email:u.user.email||null };
-      const { error } = await supabase.from("asl_trie").upsert(payload,{ onConflict:"client_id" });
-      if(error) throw error;
-      removeAslTriePending(row.client_id);
-    }catch{ break; }
-  }
-  await loadAslTrieData(); loadTrieAll();
-}
-
-async function loadAslTrieData(){
-  try{
-    const { data, error } = await supabase.from("asl_trie").select("id, created_at, delta, client_id").order("created_at",{ascending:false}).limit(2000);
-    if(error) throw error;
-    lastAslTrieSource="LIVE";
-    setAslTrieCache(data||[],"LIVE");
-  }catch{ lastAslTrieSource="CACHE"; }
-}
-
-function buildAslTrieMerged(){
-  const pending=getAslTriePending().map(p=>({ created_at:new Date(p.local_created_at).toISOString(), delta:p.delta, _source:"ATTENTE" }));
-  const cached=getAslTrieCache().map(r=>({ ...r, _source:(lastAslTrieSource==="LIVE"?"LIVE":"CACHE") }));
-  const all=[...pending,...cached].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-
-  const totals={};
-  for(const r of all){
-    const day=ymdLocalFromISO(r.created_at);
-    totals[day]=(totals[day]||0)+(Number(r.delta)||0);
-  }
-  const totalsArr=Object.keys(totals).sort((a,b)=>b.localeCompare(a)).map(day=>({ day, total:totals[day] }));
-  return { all, totalsArr };
-}
-
-function renderAslTrieTables(totalsId, histId){
-  const { all, totalsArr } = buildAslTrieMerged();
-  const tbT=$(totalsId); tbT.innerHTML="";
-  tbT.innerHTML = totalsArr.length
-    ? totalsArr.map(r=>`<tr><td>${r.day}</td><td class="right"><b>${r.total}</b></td></tr>`).join("")
-    : `<tr><td colspan="2" class="muted">Aucune donnée</td></tr>`;
-
-  const tbH=$(histId); tbH.innerHTML="";
-  tbH.innerHTML = all.length
-    ? all.slice(0,400).map(r=>{
-        const dt=new Date(r.created_at).toLocaleString();
-        const v=(r.delta>0?("+"+r.delta):String(r.delta));
-        return `<tr><td>${dt}</td><td class="right"><b>${v}</b></td><td>${r._source}</td></tr>`;
-      }).join("")
-    : `<tr><td colspan="3" class="muted">Aucune donnée</td></tr>`;
-}
-
-/* ====== TRIE KG (avec tare) ====== */
-const TRIE_KG_PENDING_KEY="trie_kg_pending_v1";
-const TRIE_KG_CACHE_KEY="trie_kg_cache_v1";
-const TRIE_KG_META_KEY="trie_kg_cache_meta_v1";
-let lastTrieKgSource="LIVE";
-
-function getTrieKgPending(){ try{return JSON.parse(localStorage.getItem(TRIE_KG_PENDING_KEY)||"[]");}catch{return[];} }
-function setTrieKgPending(arr){ localStorage.setItem(TRIE_KG_PENDING_KEY, JSON.stringify(arr)); $("trieKgPendingCount").textContent=String(arr.length); }
-function addTrieKgPending(row){ const arr=getTrieKgPending(); arr.unshift(row); setTrieKgPending(arr); }
-function removeTrieKgPending(client_id){ setTrieKgPending(getTrieKgPending().filter(x=>x.client_id!==client_id)); }
-function getTrieKgCache(){ try{return JSON.parse(localStorage.getItem(TRIE_KG_CACHE_KEY)||"[]");}catch{return[];} }
-function setTrieKgCache(rows, source){ localStorage.setItem(TRIE_KG_CACHE_KEY, JSON.stringify(rows||[])); localStorage.setItem(TRIE_KG_META_KEY, JSON.stringify({updatedAt:Date.now(), source:source||"LIVE"})); }
-function getTrieKgMeta(){ try{return JSON.parse(localStorage.getItem(TRIE_KG_META_KEY)||"null");}catch{return null;} }
-
-function calcTrieKg(){
-  const bac = $("trieKgBac").value;
-  const nb = Math.max(1, Math.floor(num($("trieKgNb").value)));
-  const brut = num($("trieKgBrut").value);
-  const tare = (T[bac]||0) * nb;
-  const net = Math.max(0, brut - tare);
-  $("trieKgNet").value = String(r1(net));
-}
-["input","change"].forEach(ev=>{
-  $("trieKgBac").addEventListener(ev, calcTrieKg);
-  $("trieKgNb").addEventListener(ev, calcTrieKg);
-  $("trieKgBrut").addEventListener(ev, calcTrieKg);
-});
-
-async function saveTrieKgSafe(){
-  calcTrieKg();
-  const category = $("trieKgCat").value;
-  const bac_type = $("trieKgBac").value;
-  const nb = Math.max(1, Math.floor(num($("trieKgNb").value)));
-  const brut = num($("trieKgBrut").value);
-  const tare = (T[bac_type]||0) * nb;
-  const net = Math.max(0, brut - tare);
-
-  if(brut<=0) return alert("Entre un poids brut.");
+async function saveKgTrie(){
+  calcKg();
+  const cat = $("kgCat").value;
+  const bac = $("kgBac").value;
+  const nb  = Math.max(1, Math.floor(num($("kgNb").value)));
+  const brut = num($("kgBrut").value);
+  const tare = (KG_TARE[bac]||0)*nb;
+  const net = Math.max(0, brut-tare);
+  if(brut<=0) return alert("Entre un brut (kg).");
   if(brut<tare) return alert("Brut inférieur à la tare.");
 
-  const client_id="kg_"+Date.now()+"_"+Math.random().toString(16).slice(2);
+  const client_id = "kg_"+Date.now()+"_"+Math.random().toString(16).slice(2);
+  const { data: u } = await supabase.auth.getUser();
+  const user_email = u?.user?.email || currentUser?.email || null;
+
+  const payload = { client_id, category: cat, bac_type: bac, nb, brut:r1(brut), tare:r1(tare), net:r1(net), user_email };
 
   try{
-    const { data:u } = await supabase.auth.getUser();
-    if(!u?.user) return alert("Connecte-toi.");
     if(!navigator.onLine) throw new Error("offline");
-
-    const payload={ client_id, category, bac_type, nb, brut:r1(brut), tare:r1(tare), net:r1(net), user_email:u.user.email||null };
-    const { error } = await supabase.from("trie_kg").upsert(payload,{ onConflict:"client_id" });
+    const { error } = await supabase.from("trie_kg").upsert(payload, { onConflict:"client_id" });
     if(error) throw error;
-
-    $("trieKgBrut").value="";
-    $("trieKgNb").value="1";
-    calcTrieKg();
-
-    await loadTrieKgData(); loadTrieAll();
+    $("kgBrut").value="";
+    calcKg();
+    await loadTrieKgData();
+    loadTrieAll();
   }catch{
-    addTrieKgPending({ client_id, local_created_at:Date.now(), category, bac_type, nb, brut:r1(brut), tare:r1(tare), net:r1(net) });
-    $("trieKgBrut").value="";
-    $("trieKgNb").value="1";
-    calcTrieKg();
+    const p = getTrieKgPending();
+    p.unshift({ ...payload, local_created_at: Date.now(), created_at: new Date().toISOString(), _source:"ATTENTE" });
+    setTrieKgPending(p);
+    $("kgBrut").value="";
+    calcKg();
     loadTrieAll();
   }
 }
 
 async function syncTrieKgPending(){
-  const arr=getTrieKgPending();
-  $("trieKgPendingCount").textContent=String(arr.length);
-  if(!arr.length || !navigator.onLine) return;
+  const p = getTrieKgPending();
+  $("trieKgPendingCount").textContent = String(p.length);
+  if(!p.length) return;
+  if(!navigator.onLine) return;
 
-  const { data:u } = await supabase.auth.getUser();
+  const { data: u } = await supabase.auth.getUser();
   if(!u?.user) return;
 
-  const toSend=[...arr].reverse();
+  const toSend=[...p].reverse();
   for(const row of toSend){
     try{
-      const payload={ ...row, user_email:u.user.email||null };
-      delete payload.local_created_at;
+      const payload = {
+        client_id: row.client_id,
+        category: row.category,
+        bac_type: row.bac_type,
+        nb: row.nb,
+        brut: row.brut,
+        tare: row.tare,
+        net: row.net,
+        user_email: row.user_email || (u.user.email||null)
+      };
       const { error } = await supabase.from("trie_kg").upsert(payload,{ onConflict:"client_id" });
       if(error) throw error;
-      removeTrieKgPending(row.client_id);
+      setTrieKgPending(getTrieKgPending().filter(x=>x.client_id!==row.client_id));
     }catch{ break; }
   }
-  await loadTrieKgData(); loadTrieAll();
+  await loadTrieKgData();
+  loadTrieAll();
 }
 
 async function loadTrieKgData(){
   try{
     const { data, error } = await supabase
       .from("trie_kg")
-      .select("id, created_at, category, bac_type, nb, net, client_id")
-      .order("created_at",{ascending:false})
+      .select("id, created_at, client_id, category, bac_type, nb, net, user_email")
+      .order("created_at",{ ascending:false })
       .limit(3000);
     if(error) throw error;
-    lastTrieKgSource="LIVE";
-    setTrieKgCache(data||[],"LIVE");
-  }catch{ lastTrieKgSource="CACHE"; }
+    setTrieKgCache(data||[]);
+  }catch{
+    // cache only
+  }
 }
 
-function buildTrieKgMerged(){
-  const pending=getTrieKgPending().map(p=>({
-    created_at:new Date(p.local_created_at).toISOString(),
-    category:p.category,
-    bac_type:p.bac_type,
-    nb:p.nb,
-    net:p.net,
+function mergeTrieKg(){
+  const pending = getTrieKgPending().map(p=>({
+    created_at: p.created_at || new Date(p.local_created_at).toISOString(),
+    category: p.category,
+    nb: p.nb,
+    net: p.net,
+    user_email: p.user_email||null,
     _source:"ATTENTE"
   }));
-  const cached=getTrieKgCache().map(r=>({ ...r, _source:(lastTrieKgSource==="LIVE"?"LIVE":"CACHE") }));
+  const cached = getTrieKgCache().map(r=>({ ...r, _source:"LIVE" }));
   const all=[...pending,...cached].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
 
-  const totals={}; // key: day||cat
+  // totals day+category
+  const totalsMap = {}; // key = day|cat
   for(const r of all){
-    const day=ymdLocalFromISO(r.created_at);
-    const cat=r.category||"—";
-    const key=day+"||"+cat;
-    totals[key]=(totals[key]||0)+num(r.net);
+    const day = ymdLocalFromISO(r.created_at);
+    const key = day+"|"+r.category;
+    totalsMap[key] = (totalsMap[key]||0) + num(r.net);
   }
-  const totalsArr=Object.keys(totals)
+  const totalsArr = Object.keys(totalsMap)
     .map(k=>{
-      const [day,cat]=k.split("||");
-      return { day, category:cat, total:r1(totals[k]) };
+      const [day, category] = k.split("|");
+      return { day, category, total: totalsMap[k] };
     })
-    .sort((a,b)=> (b.day.localeCompare(a.day) || a.category.localeCompare(b.category,"fr")));
+    .sort((a,b)=> b.day.localeCompare(a.day) || a.category.localeCompare(b.category,"fr"));
+
   return { all, totalsArr };
 }
 
-function renderTrieKgTables(totalsId, histId){
-  const { all, totalsArr } = buildTrieKgMerged();
+function renderTrieKg(totalsId, histId){
+  $("trieKgPendingCount").textContent = String(getTrieKgPending().length);
 
-  const tbT=$(totalsId); tbT.innerHTML="";
+  const { all, totalsArr } = mergeTrieKg();
+
+  const tbT = $(totalsId);
   tbT.innerHTML = totalsArr.length
-    ? totalsArr.map(r=>`<tr><td>${r.day}</td><td>${r.category}</td><td class="right"><b>${r.total}</b></td></tr>`).join("")
-    : `<tr><td colspan="3" class="muted">Aucune donnée</td></tr>`;
+    ? totalsArr.map(r=>`<tr><td>${r.day}</td><td>${r.category}</td><td class="right"><b>${r1(r.total)}</b></td></tr>`).join("")
+    : `<tr><td colspan="3">Aucune donnée</td></tr>`;
 
-  const tbH=$(histId); tbH.innerHTML="";
+  const tbH = $(histId);
   tbH.innerHTML = all.length
-    ? all.slice(0,600).map(r=>{
-        const dt=new Date(r.created_at).toLocaleString();
-        const src=r._source;
-        return `<tr><td>${dt}</td><td>${r.category||"—"}</td><td>${r.bac_type||"—"}</td><td class="right">${r.nb||1}</td><td class="right"><b>${r1(num(r.net))}</b></td><td>${src}</td></tr>`;
+    ? all.slice(0,500).map(r=>{
+        const dt = new Date(r.created_at).toLocaleString();
+        return `<tr><td>${dt}</td><td>${r.category}</td><td class="right">${r.nb}</td><td class="right"><b>${r1(r.net)}</b></td><td>${r.user_email||"—"}</td><td>${r._source}</td></tr>`;
       }).join("")
-    : `<tr><td colspan="6" class="muted">Aucune donnée</td></tr>`;
+    : `<tr><td colspan="6">Aucune donnée</td></tr>`;
 }
 
+/* Render ALL */
 function loadTrieAll(){
-  $("pamTriePendingCount").textContent=String(getPamTriePending().length);
-  $("aslTriePendingCount").textContent=String(getAslTriePending().length);
-  $("trieKgPendingCount").textContent=String(getTrieKgPending().length);
+  renderDelta("pamTrieTotals","pamTrieHist","pamTriePendingCount",PAM_TRIE_PENDING_KEY,PAM_TRIE_CACHE_KEY);
+  renderDelta("aslTrieTotals","aslTrieHist","aslTriePendingCount",ASL_TRIE_PENDING_KEY,ASL_TRIE_CACHE_KEY);
 
-  renderPamTrieTables("pamTrieTotals","pamTrieHist");
-  renderAslTrieTables("aslTrieTotals","aslTrieHist");
-  renderTrieKgTables("trieKgTotals","trieKgHist");
+  renderDelta("pamTrieTotalsHist","pamTrieHistHist",null,PAM_TRIE_PENDING_KEY,PAM_TRIE_CACHE_KEY);
+  renderDelta("aslTrieTotalsHist","aslTrieHistHist",null,ASL_TRIE_PENDING_KEY,ASL_TRIE_CACHE_KEY);
 
-  renderPamTrieTables("pamTrieTotalsHist","pamTrieHistHist");
-  renderAslTrieTables("aslTrieTotalsHist","aslTrieHistHist");
-  renderTrieKgTables("trieKgTotalsHist","trieKgHistHist");
+  renderTrieKg("trieKgTotals","trieKgHist");
+  renderTrieKg("trieKgTotalsHist","trieKgHistHist");
 }
+
 /* Init */
 (async ()=>{
   refreshNetwork();
   setPending(getPending());
   renderPending();
   calc();
+  calcKg();
 
-  const meta=getHistoryMeta();
+  const meta = getHistoryMeta();
   lastHistorySource = meta?.source || "CACHE";
   setStoreBadge();
   renderMixedHistory();
 
-  // init trie local
-  setPamTriePending(getPamTriePending());
-  setAslTriePending(getAslTriePending());
-  setTrieKgPending(getTrieKgPending());
-
-  const pmeta=getPamTrieMeta(); lastPamTrieSource = pmeta?.source || "CACHE";
-  const ameta=getAslTrieMeta(); lastAslTrieSource = ameta?.source || "CACHE";
-  const kgmeta=getTrieKgMeta(); lastTrieKgSource = kgmeta?.source || "CACHE";
-
-  calcTrieKg();
+  $("pamTriePendingCount").textContent = String(getArr(PAM_TRIE_PENDING_KEY).length);
+  $("aslTriePendingCount").textContent = String(getArr(ASL_TRIE_PENDING_KEY).length);
+  $("trieKgPendingCount").textContent = String(getTrieKgPending().length);
 
   const { data } = await supabase.auth.getUser();
   if(data?.user){
-    currentUser=data.user;
+    currentUser = data.user;
     $("badgeUser").textContent = currentUser?.email ? ("Connecté : " + currentUser.email) : "Connecté";
 
-    try{ isAdminUser = await checkAdmin(); }catch{ isAdminUser=false; }
+    try { isAdminUser = await checkAdmin(); } catch { isAdminUser = false; }
     setAdminUI();
 
-    $("loginScreen").style.display="none";
-    $("app").style.display="block";
+    $("loginScreen").style.display = "none";
+    $("app").style.display = "block";
 
     await loadCities();
     await loadData();
-
     await loadPamTrieData();
     await loadAslTrieData();
     await loadTrieKgData();
+
     loadTrieAll();
-
-    $("recapDate").value = ymdToday();
-    buildRecap();
-
     syncPending();
     syncPamTriePending();
     syncAslTriePending();
     syncTrieKgPending();
 
     show("pesee");
-  }else{
-    $("pendingCount").textContent = String(getPending().length);
-    loadTrieAll();
   }
 })();
 
-/* ✅ Service worker (chemin relatif pour GitHub Pages) */
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js");
-}
+/* ✅ FIX CACHE/PWA : on supprime les anciens service workers (si présents) */
+(async ()=>{
+  try{
+    if(!("serviceWorker" in navigator)) return;
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for(const r of regs){ await r.unregister(); }
+  }catch{}
+})();
+
+/* ✅ Si tu veux réactiver PWA propre : utilise sw-v2.js (voir en dessous) */
+// if("serviceWorker" in navigator){
+//   navigator.serviceWorker.register("./sw-v2.js");
+// }
 </script>
 </body>
 </html>
