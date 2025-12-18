@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Pesée</title>
 
-<!-- PWA (OK de garder le manifest, mais on enlève le service worker) -->
+<!-- PWA -->
 <link rel="manifest" href="/Pes-e/manifest.json">
 <meta name="theme-color" content="#b22222">
 
@@ -314,6 +314,7 @@ const supabase = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 /* TARES + TYPES */
 const T = { PAM:59, ASL:45, ABJ:43, FRIGO:0, HF:0 };
 const A = { PAM:"PAM", ASL:"ASL", ABJ:"ABJ", FRIGO:"F", HF:"HF" };
+const TYPES = ["PAM","ASL","ABJ","F","HF"];
 
 /* OFFLINE KEYS */
 const PENDING_KEY = "pesees_pending_v5";
@@ -523,7 +524,7 @@ async function login(){
     const { data } = await supabase.auth.getUser();
     currentUser = data?.user || null;
 
-    isAdminUser = false;
+    isAdminUser = false; // (tu peux remettre ton RPC is_admin si tu l’as)
     setAdminUI();
 
     $("badgeUser").textContent = currentUser?.email ? ("Connecté : " + currentUser.email) : "Connecté";
@@ -575,7 +576,6 @@ function resetCache(){
     setLoginMsg("❌ Reset cache: " + (e?.message || String(e)));
   }
 }
-
 /* Villes */
 async function loadCities(){
   try{
@@ -777,7 +777,8 @@ function ymdLocalFromISO(iso){
   const da=String(d.getDate()).padStart(2,"0");
   return `${y}-${m}-${da}`;
 }
-aa/* ---------- PAM ---------- */
+
+/* ---------- PAM ---------- */
 const PAM_TRIE_PENDING_KEY = "pam_trie_pending_v1";
 const PAM_TRIE_CACHE_KEY   = "pam_trie_cache_v1";
 const PAM_TRIE_META_KEY    = "pam_trie_cache_meta_v1";
@@ -1045,15 +1046,9 @@ function loadTrieAll(){
   }
 })();
 
-/* ✅ IMPORTANT : on SUPPRIME le Service Worker (plus de register) */
+/* ✅ IMPORTANT : on ENLÈVE le service worker (et on désinstalle ceux déjà présents) */
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
-}
-</script>
-</body>
-</html>
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("/Pes-e/sw.js");
 }
 </script>
 </body>
