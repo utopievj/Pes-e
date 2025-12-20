@@ -11,12 +11,15 @@
 body{margin:0;font-family:system-ui;background:#0b0c10;color:#fff}
 .wrap{max-width:980px;margin:auto;padding:16px}
 .card{background:#12141b;border-radius:16px;padding:16px}
-button{padding:14px;border-radius:12px;border:none;background:#b22222;color:#fff;font-weight:800}
-input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0f1118;color:#fff}
+button{padding:14px;border-radius:12px;border:none;background:#b22222;color:#fff;font-weight:800;cursor:pointer}
+button:active{transform:scale(0.99)}
+input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #333;background:#0f1118;color:#fff;box-sizing:border-box}
 .smallBtn{padding:10px;font-size:12px}
 .center{min-height:100vh;display:flex;align-items:center;justify-content:center}
 .badge{background:#222;padding:6px 10px;border-radius:999px;font-size:12px}
 #status{margin-top:10px;color:#ffd27a;white-space:pre-wrap}
+#loginMsg{margin-top:10px;color:#ffd27a;white-space:pre-wrap}
+label{display:block;margin:10px 0 6px;font-size:12px}
 </style>
 </head>
 
@@ -25,16 +28,19 @@ input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #333;ba
 <!-- LOGIN -->
 <div id="loginScreen" class="center">
   <div class="card" style="max-width:420px;width:100%">
-    <h2>Connexion</h2>
+    <h2 style="margin-top:0">Connexion</h2>
 
     <label>Email</label>
-    <input id="email" type="email">
+    <input id="email" type="email" autocomplete="username">
 
     <label>Mot de passe</label>
-    <input id="password" type="password">
+    <input id="password" type="password" autocomplete="current-password">
 
-    <button onclick="login()">SE CONNECTER</button>
-    <button style="margin-top:10px;background:#8b0000" onclick="resetCache()">RESET CACHE</button>
+    <!-- IMPORTANT: type="button" évite les submit/reload -->
+    <div style="display:grid;gap:10px;margin-top:12px">
+      <button type="button" id="btnLogin">SE CONNECTER</button>
+      <button type="button" id="btnReset" style="background:#8b0000">RESET CACHE</button>
+    </div>
 
     <div id="loginMsg"></div>
   </div>
@@ -44,11 +50,11 @@ input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #333;ba
 <div id="app" style="display:none">
   <div class="wrap">
     <div class="card">
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="smallBtn" onclick="show('pesee')">PESÉE</button>
-        <button class="smallBtn" onclick="show('hist')">HISTORIQUE</button>
-        <button class="smallBtn" onclick="show('trie')">TRIE</button>
-        <button class="smallBtn" onclick="logout()">Déconnexion</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button type="button" class="smallBtn" id="btnPesee">PESÉE</button>
+        <button type="button" class="smallBtn" id="btnHist">HISTORIQUE</button>
+        <button type="button" class="smallBtn" id="btnTrie">TRIE</button>
+        <button type="button" class="smallBtn" id="btnLogout">Déconnexion</button>
         <span class="badge" id="badgeUser">—</span>
         <span class="badge" id="badgeNet">Réseau ?</span>
       </div>
@@ -60,7 +66,7 @@ input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #333;ba
         <h2>Pesée</h2>
 
         <label>Ville</label>
-        <input id="ville">
+        <input id="ville" placeholder="Ex: Toulouse">
 
         <label>Type</label>
         <select id="type">
@@ -70,18 +76,18 @@ input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #333;ba
         </select>
 
         <label>Nb bacs</label>
-        <input id="nb" type="number" value="1">
+        <input id="nb" type="number" inputmode="numeric" min="1" step="1" value="1">
 
         <label>Brut (kg)</label>
-        <input id="brut" type="number">
+        <input id="brut" type="number" inputmode="decimal" step="0.1" placeholder="Ex: 120.5">
 
         <h2>Net : <span id="net">0</span> kg</h2>
 
-        <button onclick="saveSafe()">ENREGISTRER</button>
+        <button type="button" id="btnSave">ENREGISTRER</button>
       </div>
 
-      <div id="pageHist" style="display:none"><h2>Historique</h2></div>
-      <div id="pageTrie" style="display:none"><h2>Trie</h2></div>
+      <div id="pageHist" style="display:none"><h2>Historique</h2><div>À remettre ensuite.</div></div>
+      <div id="pageTrie" style="display:none"><h2>Trie</h2><div>À remettre ensuite.</div></div>
 
     </div>
   </div>
@@ -92,110 +98,169 @@ input,select{width:100%;padding:12px;border-radius:12px;border:1px solid #333;ba
 const SUPABASE_URL = "https://dzfokswsmkvhjhziqakj.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6Zm9rc3dzbWt2aGpoemlxYWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MTQ5MTAsImV4cCI6MjA4MTM5MDkxMH0.dVdAUGstXPPSAeDQwX-Paha2s86rebaSwnsk6hFYpq0";
 
-const $ = id => document.getElementById(id);
+const $ = (id)=>document.getElementById(id);
 const TARES = { PAM:59, ASL:45, ABJ:43 };
 
-function setStatus(t){ $("status").textContent=t||""; }
-function setLoginMsg(t){ $("loginMsg").textContent=t||""; }
+function setStatus(t){ const el=$("status"); if(el) el.textContent=t||""; }
+function setLoginMsg(t){ const el=$("loginMsg"); if(el) el.textContent=t||""; }
 
-/* ================= ERREURS VISIBLES ================= */
+/* ================= BANDEAU ERREUR (TOUJOURS VISIBLE) ================= */
 function showError(msg){
   let e=document.getElementById("globalError");
   if(!e){
     e=document.createElement("div");
     e.id="globalError";
-    e.style="position:fixed;bottom:10px;left:10px;right:10px;background:#8b0000;color:#fff;padding:12px;border-radius:12px;z-index:9999";
+    e.style="position:fixed;bottom:10px;left:10px;right:10px;background:#8b0000;color:#fff;padding:12px;border-radius:12px;z-index:9999;white-space:pre-wrap";
     document.body.appendChild(e);
   }
   e.textContent="❌ "+msg;
 }
+window.onerror = (m, src, line, col, err)=>{
+  showError("JS error: " + m + "\n" + (src||"") + ":" + (line||"") + ":" + (col||""));
+};
+window.onunhandledrejection = (e)=>{
+  showError("Promise error: " + (e.reason?.message || e.reason || "inconnue"));
+};
 
-window.onerror=(m)=>showError(m);
-window.onunhandledrejection=(e)=>showError(e.reason?.message||e.reason);
+/* ✅ Preuve que le JS tourne */
+setTimeout(()=>{ setLoginMsg((($("loginMsg").textContent||"") + "\n✅ JS OK").trim()); }, 200);
 
-/* ================= SUPABASE ================= */
-let supabase=null;
-setTimeout(()=>{
+/* ================= SUPABASE INIT ================= */
+let supabase = null;
+
+function initSupabase(){
   if(!window.supabase){
-    showError("Supabase ne charge pas (réseau / DNS / bloqueur)");
-  }else{
-    supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    showError("Supabase SDK NON chargé.\nCause: DNS/filtre, cache, ou le script CDN bloqué.\nEssaye: autre réseau, désactive bloqueur, vide cache.");
+    return;
   }
-},2000);
-/* ================= UI ================= */
+  try{
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }catch(e){
+    showError("createClient impossible: " + (e?.message||e));
+  }
+}
+setTimeout(initSupabase, 500);
+
+/* ================= NAV ================= */
 function show(p){
-  $("pagePesee").style.display=p==="pesee"?"block":"none";
-  $("pageHist").style.display=p==="hist"?"block":"none";
-  $("pageTrie").style.display=p==="trie"?"block":"none";
+  $("pagePesee").style.display = (p==="pesee") ? "block":"none";
+  $("pageHist").style.display  = (p==="hist") ? "block":"none";
+  $("pageTrie").style.display  = (p==="trie") ? "block":"none";
 }
 
+/* ================= CALC ================= */
 function calc(){
-  const nb=Number($("nb").value)||1;
-  const brut=Number($("brut").value)||0;
-  const tare=(TARES[$("type").value]||0)*nb;
-  $("net").textContent=Math.max(0,brut-tare);
+  const nb = Math.max(1, Math.floor(Number($("nb").value)||1));
+  $("nb").value = String(nb);
+  const brut = Number($("brut").value)||0;
+  const tare = (TARES[$("type").value]||0)*nb;
+  const net = Math.max(0, brut - tare);
+  $("net").textContent = String(Math.round(net*10)/10);
 }
-["nb","brut","type"].forEach(id=>$(id).oninput=calc);
 
 /* ================= AUTH ================= */
 async function login(){
   try{
-    if(!supabase) throw "Supabase non prêt";
-    setLoginMsg("Connexion...");
-    const {error}=await supabase.auth.signInWithPassword({
-      email:$("email").value,
-      password:$("password").value
-    });
-    if(error) throw error.message;
+    if(!supabase) throw new Error("Supabase non prêt (SDK bloqué ou pas chargé)");
+    const email = $("email").value.trim();
+    const password = $("password").value;
+    if(!email || !password) { setLoginMsg("Email + mot de passe."); return; }
 
-    const {data}=await supabase.auth.getUser();
-    $("badgeUser").textContent=data.user.email;
+    setLoginMsg("Connexion...");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if(error) throw error;
+
+    const { data } = await supabase.auth.getUser();
+    $("badgeUser").textContent = data?.user?.email || "Connecté";
+
     $("loginScreen").style.display="none";
     $("app").style.display="block";
     refreshNetwork();
+    setStatus("✅ Connecté");
+    show("pesee");
   }catch(e){
-    setLoginMsg("❌ "+e);
-    showError(e);
+    const msg = e?.message || String(e);
+    setLoginMsg("❌ " + msg);
+    showError(msg);
   }
 }
 
 async function logout(){
-  await supabase.auth.signOut();
-  location.reload();
-}
-
-/* ================= SAVE ================= */
-async function saveSafe(){
   try{
-    if(!supabase) throw "Supabase non prêt";
-    calc();
-    const payload={
-      ville:$("ville").value,
-      type:$("type").value,
-      nb:Number($("nb").value),
-      net:Number($("net").textContent),
-      operator:(await supabase.auth.getUser()).data.user.email
-    };
-    const {error}=await supabase.from("pesees").insert(payload);
-    if(error) throw error.message;
-    setStatus("✅ Enregistré");
+    if(!supabase) throw new Error("Supabase non prêt");
+    await supabase.auth.signOut();
+    location.reload();
   }catch(e){
-    showError(e);
+    showError(e?.message||String(e));
   }
 }
 
-/* ================= UTILS ================= */
-function resetCache(){
-  localStorage.clear();
-  location.reload();
+/* ================= SAVE (TEST SIMPLE) ================= */
+async function saveSafe(){
+  try{
+    if(!supabase) throw new Error("Supabase non prêt");
+    calc();
+
+    const { data: u } = await supabase.auth.getUser();
+    const operator = u?.user?.email || null;
+
+    const payload = {
+      ville: $("ville").value || null,
+      type: $("type").value,
+      nb: Number($("nb").value)||1,
+      brut: Number($("brut").value)||0,
+      net: Number($("net").textContent)||0,
+      operator
+    };
+
+    const { error } = await supabase.from("pesees").insert(payload);
+    if(error) throw error;
+
+    setStatus("✅ Enregistré");
+    $("brut").value="";
+    calc();
+  }catch(e){
+    showError(e?.message||String(e));
+    setStatus("❌ " + (e?.message||String(e)));
+  }
 }
 
+/* ================= RESET CACHE ================= */
+function resetCache(){
+  try{
+    localStorage.clear();
+    setLoginMsg("✅ Cache local supprimé. Recharge la page.");
+  }catch(e){
+    showError(e?.message||String(e));
+  }
+}
+
+/* ================= NETWORK ================= */
 function refreshNetwork(){
   $("badgeNet").textContent="Réseau : "+(navigator.onLine?"OK":"HORS-LIGNE");
 }
-window.addEventListener("online",refreshNetwork);
-window.addEventListener("offline",refreshNetwork);
+window.addEventListener("online", refreshNetwork);
+window.addEventListener("offline", refreshNetwork);
 
+/* ================= BIND BUTTONS (IMPORTANT) ================= */
+document.addEventListener("DOMContentLoaded", ()=>{
+  // Login
+  $("btnLogin").addEventListener("click", ()=>login());
+  $("btnReset").addEventListener("click", ()=>resetCache());
+
+  // App
+  $("btnPesee").addEventListener("click", ()=>show("pesee"));
+  $("btnHist").addEventListener("click", ()=>show("hist"));
+  $("btnTrie").addEventListener("click", ()=>show("trie"));
+  $("btnLogout").addEventListener("click", ()=>logout());
+  $("btnSave").addEventListener("click", ()=>saveSafe());
+
+  // Inputs
+  ["nb","brut","type"].forEach(id=>$(id).addEventListener("input", calc));
+  calc();
+  refreshNetwork();
+});
 </script>
+
 </body>
 </html>
