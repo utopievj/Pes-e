@@ -1,100 +1,86 @@
-*{box-sizing:border-box}
-
+/* ===== GLOBAL ===== */
 body{
   margin:0;
-  font-family:system-ui;
+  font-family:system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   background:#0b0c10;
   color:#ffffff;
 }
 
-.wrap{
-  max-width:960px;
-  margin:auto;
-  padding:16px;
-}
-
+/* ===== CARD ===== */
 .card{
+  max-width:420px;
+  margin:40px auto;
   background:#12141b;
-  border:1px solid #222634;
-  border-radius:16px;
-  padding:16px;
+  padding:20px;
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.4);
 }
 
-h1,h2{
-  margin-top:0;
-}
-
-label{
-  font-size:12px;
-  margin-bottom:4px;
-  display:block;
-}
-
-input,select{
+/* ===== INPUTS / SELECT ===== */
+input,
+select{
   width:100%;
-  padding:12px;
-  border-radius:12px;
-  border:1px solid #262b3a;
+  padding:14px;
+  margin-top:10px;
+  border-radius:10px;
+  border:1px solid #222;
   background:#0f1118;
-  color:#fff;
+  color:#ffffff;
+  font-size:16px;
+  box-sizing:border-box;
 }
 
+/* ===== BUTTONS ===== */
 button{
   width:100%;
   padding:14px;
-  border-radius:12px;
-  border:1px solid #7a1f1f;
+  margin-top:12px;
+  border-radius:10px;
+  border:none;
   background:#b22222;
-  color:#fff;
-  font-weight:800;
+  color:#ffffff;
+  font-size:16px;
+  font-weight:700;
+  cursor:pointer;
 }
 
 button:hover{
   background:#d32f2f;
 }
 
-.grid{
-  display:grid;
-  grid-template-columns:repeat(12,1fr);
-  gap:12px;
+button.secondary{
+  background:#333333;
 }
 
-.col-2{grid-column:span 2}
-.col-4{grid-column:span 4}
-.col-12{grid-column:span 12}
-
-@media(max-width:800px){
-  .col-2,.col-4{grid-column:span 12}
+button.secondary:hover{
+  background:#444444;
 }
 
-.big{
-  font-size:32px;
-  font-weight:900;
+/* ===== TOP BAR ===== */
+.top{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
 }
 
-.tableWrap{
-  overflow:auto;
-  border:1px solid #222634;
-  border-radius:12px;
-  margin-top:8px;
+/* ===== TEXT ===== */
+h2, h3{
+  margin-top:0;
 }
 
-table{
-  width:100%;
-  border-collapse:collapse;
+p{
+  margin:10px 0;
 }
 
-th,td{
-  padding:8px;
-  border-bottom:1px solid #222634;
+/* ===== MESSAGES ===== */
+#msg,
+#msgApp{
+  margin-top:12px;
+  font-size:14px;
+  white-space:pre-wrap;
 }
 
-.right{
-  text-align:right;
-}
-
-#status{
-  margin-bottom:10px;
-  font-size:12px;
-  color:#ffd27a;
+/* ===== UTIL ===== */
+.hidden{
+  display:none;
 }
