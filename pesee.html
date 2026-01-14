@@ -13,14 +13,13 @@
 <div class="wrap">
   <div class="card">
 
-    <!-- ===== NAV ===== -->
-    <div style="display:flex;gap:10px;margin-bottom:16px">
-      <button onclick="showPesee()">PESÉE</button>
-      <button onclick="showHistorique()">HISTORIQUE</button>
-    </div>
-
     <!-- ================= PAGE PESÉE ================= -->
     <div id="pagePesee">
+
+      <!-- Bouton UNIQUEMENT pour aller à l'historique -->
+      <div style="margin-bottom:16px">
+        <button onclick="showHistorique()">HISTORIQUE</button>
+      </div>
 
       <h1>Pesée</h1>
       <div id="status">Prêt.</div>
@@ -71,6 +70,11 @@
 
     <!-- ================= PAGE HISTORIQUE ================= -->
     <div id="pageHistorique" style="display:none">
+
+      <!-- Bouton RETOUR UNIQUEMENT -->
+      <div style="margin-bottom:16px">
+        <button onclick="showPesee()">⬅ RETOUR PESÉE</button>
+      </div>
 
       <h1>Historique</h1>
 
@@ -159,7 +163,7 @@ function enregistrer() {
 }
 </script>
 
-<!-- ===== HISTORIQUE ===== -->
+<!-- ===== HISTORIQUE (séparé) ===== -->
 <script src="historique.js"></script>
 
 </body>
