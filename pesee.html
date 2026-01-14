@@ -2,92 +2,258 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Pesée</title>
+
+  <!-- CSS séparé -->
   <link rel="stylesheet" href="style.css">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-<div class="card">
-  <h2>Pesée</h2>
+<!-- LOGIN -->
+<div id="loginScreen" class="center">
+  <div class="card max420">
+    <h2>Connexion</h2>
 
-  <label>Ville</label>
-  <input id="ville" type="text" placeholder="Ex: Toulouse">
+    <label>Email</label>
+    <input id="email" type="email">
 
-  <label>Type</label>
-  <select id="type">
-    <option value="PAM">PAM (59 kg)</option>
-    <option value="ECRAN">Écran (59 kg)</option>
-    <option value="ASL">ASL (45 kg)</option>
-    <option value="ABJ">ABJ (43 kg)</option>
-  </select>
+    <label>Mot de passe</label>
+    <input id="password" type="password">
 
-  <label>Nombre de bacs (1 à 4)</label>
-  <select id="nb">
-    <option>1</option>
-    <option>2</option>
-    <option>3</option>
-    <option>4</option>
-  </select>
+    <button id="btnLogin">SE CONNECTER</button>
 
-  <label>Poids brut (kg)</label>
-  <input id="brut" type="number" step="0.1">
+    <div id="loginMsg" class="err"></div>
+  </div>
+</div>
 
-  <h3>Net : <span id="net">0</span> kg</h3>
+<!-- APP -->
+<div id="app" style="display:none">
+  <div class="wrap">
+    <div class="card">
 
-  <button onclick="enregistrer()">ENREGISTRER</button>
+      <!-- NAV -->
+      <div class="row">
+        <button id="btnShowPesee">➕ Pesée</button>
+        <button id="btnShowHist">📜 Historique</button>
+        <button class="danger" id="btnLogout">🚪 Déconnexion</button>
+        <span class="badge" id="userBadge"></span>
+      </div>
 
-  <button class="secondary" onclick="location.href='historique.html'">
-    Voir l’historique
-  </button>
+      <div id="status"></div>
 
-  <div id="msg"></div>
+      <!-- PAGE PESEE -->
+      <div id="pagePesee">
+        <h2>Pesée</h2>
+
+        <div class="grid">
+          <div class="col-4">
+            <label>Ville</label>
+            <input id="ville">
+          </div>
+
+          <div class="col-4">
+            <label>Type</label>
+            <select id="type">
+              <option value="PAM">PAM (59 kg)</option>
+              <option value="ECRAN">Écran (59 kg)</option>
+              <option value="ASL">ASL (45 kg)</option>
+              <option value="ABJ">ABJ (43 kg)</option>
+            </select>
+          </div>
+
+          <div class="col-2">
+            <label>Nb bacs (1–4)</label>
+            <input id="nb" type="number" min="1" max="4" value="1">
+          </div>
+
+          <div class="col-2">
+            <label>Brut (kg)</label>
+            <input id="brut" type="number" step="0.1">
+          </div>
+
+          <div class="col-12">
+            <div class="big">Net : <span id="net">0</span> kg</div>
+          </div>
+
+          <div class="col-12">
+            <button id="btnSave">ENREGISTRER</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE HISTORIQUE -->
+      <div id="pageHist" style="display:none">
+        <h2>Historique</h2>
+
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Ville</th>
+                <th>Type</th>
+                <th class="right">Nb</th>
+                <th class="right">Net (kg)</th>
+              </tr>
+            </thead>
+            <tbody id="hist"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <script>
-const TARES = { PAM:59, ECRAN:59, ASL:45, ABJ:43 };
+/* =========================
+   CONFIG SUPABASE
+========================= */
+const SUPABASE_URL = "https://dzfokswsmkvhjhziqakj.supabase.co";
+const SUPABASE_KEY = "REMPLACE_TA_CLE_ANON_ICI";
+
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+/* =========================
+   CONSTANTES
+========================= */
+const TARE = {
+  PAM: 59,
+  ECRAN: 59,
+  ASL: 45,
+  ABJ: 43
+};
+
 const $ = id => document.getElementById(id);
 
-function calcul(){
-  const type = $("type").value;
-  const nb = Number($("nb").value);
-  const brut = Number($("brut").value || 0);
-  const net = Math.max(0, brut - TARES[type] * nb);
+/* =========================
+   CALCUL NET
+========================= */
+function calc() {
+  let nb = Math.min(4, Math.max(1, parseInt($("nb").value || 1)));
+  $("nb").value = nb;
+
+  let brut = parseFloat($("brut").value || 0);
+  let type = $("type").value;
+
+  let net = Math.max(0, brut - (TARE[type] * nb));
   $("net").textContent = net.toFixed(1);
+
+  return net;
 }
 
-["type","nb","brut"].forEach(id=>{
-  $(id).addEventListener("input", calcul);
-});
+$("nb").oninput =
+$("brut").oninput =
+$("type").onchange = calc;
 
-function enregistrer(){
-  const ville = $("ville").value.trim();
-  const brut = Number($("brut").value);
+/* =========================
+   LOGIN
+========================= */
+$("btnLogin").onclick = async () => {
+  $("loginMsg").textContent = "";
 
-  if(!ville || brut <= 0){
-    $("msg").textContent = "❌ Données invalides";
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: $("email").value,
+    password: $("password").value
+  });
+
+  if (error) {
+    $("loginMsg").textContent = error.message;
     return;
   }
 
-  const type = $("type").value;
-  const nb = Number($("nb").value);
-  const net = brut - TARES[type] * nb;
+  $("loginScreen").style.display = "none";
+  $("app").style.display = "block";
+  $("userBadge").textContent = data.user.email;
 
-  const ligne = {
-    date: new Date().toLocaleString(),
-    ville, type, nb, brut,
-    net: net.toFixed(1)
-  };
+  loadHist();
+};
 
-  const hist = JSON.parse(localStorage.getItem("historique") || "[]");
-  hist.unshift(ligne);
-  localStorage.setItem("historique", JSON.stringify(hist));
+/* =========================
+   LOGOUT
+========================= */
+$("btnLogout").onclick = async () => {
+  await supabase.auth.signOut();
+  location.reload();
+};
 
-  $("msg").textContent = "✅ Enregistré";
-  $("brut").value = "";
-  calcul();
+/* =========================
+   ENREGISTRER PESEE
+========================= */
+$("btnSave").onclick = async () => {
+  const net = calc();
+
+  const { error } = await supabase
+    .from("pesees")
+    .insert({
+      ville: $("ville").value,
+      type: $("type").value,
+      nb: $("nb").value,
+      brut: $("brut").value,
+      tare: TARE[$("type").value] * $("nb").value,
+      net: net
+    });
+
+  if (error) {
+    $("status").textContent = error.message;
+  } else {
+    $("status").textContent = "✔ Pesée enregistrée";
+    $("brut").value = "";
+    calc();
+    loadHist();
+  }
+};
+
+/* =========================
+   HISTORIQUE
+========================= */
+async function loadHist() {
+  const { data, error } = await supabase
+    .from("pesees")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    $("status").textContent = error.message;
+    return;
+  }
+
+  $("hist").innerHTML = "";
+
+  data.forEach(r => {
+    $("hist").innerHTML += `
+      <tr>
+        <td>${new Date(r.created_at).toLocaleString()}</td>
+        <td>${r.ville}</td>
+        <td>${r.type}</td>
+        <td class="right">${r.nb}</td>
+        <td class="right">${r.net}</td>
+      </tr>
+    `;
+  });
 }
+
+/* =========================
+   NAVIGATION
+========================= */
+$("btnShowPesee").onclick = () => {
+  $("pagePesee").style.display = "block";
+  $("pageHist").style.display = "none";
+};
+
+$("btnShowHist").onclick = () => {
+  $("pagePesee").style.display = "none";
+  $("pageHist").style.display = "block";
+  loadHist();
+};
 </script>
 
 </body>

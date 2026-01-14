@@ -1,86 +1,180 @@
-/* ===== GLOBAL ===== */
-body{
-  margin:0;
-  font-family:system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background:#0b0c10;
-  color:#ffffff;
+/* =====================
+   GLOBAL
+===================== */
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0b0c10;
+  color: #e9eef6;
 }
 
-/* ===== CARD ===== */
-.card{
-  max-width:420px;
-  margin:40px auto;
-  background:#12141b;
-  padding:20px;
-  border-radius:14px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.4);
+.wrap {
+  max-width: 900px;
+  margin: auto;
+  padding: 16px;
 }
 
-/* ===== INPUTS / SELECT ===== */
+.card {
+  background: #12141b;
+  border: 1px solid #222634;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+/* =====================
+   TEXT & LABELS
+===================== */
+h2 {
+  margin-top: 0;
+}
+
+label {
+  display: block;
+  margin: 10px 0 4px;
+  font-size: 12px;
+  color: #ffffff;
+}
+
+.big {
+  font-size: 32px;
+  font-weight: 900;
+  margin: 10px 0;
+}
+
+/* =====================
+   INPUTS
+===================== */
 input,
-select{
-  width:100%;
-  padding:14px;
-  margin-top:10px;
-  border-radius:10px;
-  border:1px solid #222;
-  background:#0f1118;
-  color:#ffffff;
-  font-size:16px;
-  box-sizing:border-box;
+select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #262b3a;
+  background: #0f1118;
+  color: #ffffff;
+  box-sizing: border-box;
 }
 
-/* ===== BUTTONS ===== */
-button{
-  width:100%;
-  padding:14px;
-  margin-top:12px;
-  border-radius:10px;
-  border:none;
-  background:#b22222;
-  color:#ffffff;
-  font-size:16px;
-  font-weight:700;
-  cursor:pointer;
+/* =====================
+   BUTTONS
+===================== */
+button {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #7a1f1f;
+  background: #b22222;
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
 }
 
-button:hover{
-  background:#d32f2f;
+button:hover {
+  background: #d32f2f;
 }
 
-button.secondary{
-  background:#333333;
+button.danger {
+  background: #8b0000;
+  border-color: #5c0000;
 }
 
-button.secondary:hover{
-  background:#444444;
+/* =====================
+   GRID
+===================== */
+.grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(12, 1fr);
 }
 
-/* ===== TOP BAR ===== */
-.top{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
+.col-12 { grid-column: span 12; }
+.col-6  { grid-column: span 6; }
+.col-4  { grid-column: span 4; }
+.col-3  { grid-column: span 3; }
+.col-2  { grid-column: span 2; }
+
+@media (max-width: 800px) {
+  .col-6,
+  .col-4,
+  .col-3,
+  .col-2 {
+    grid-column: span 12;
+  }
 }
 
-/* ===== TEXT ===== */
-h2, h3{
-  margin-top:0;
+/* =====================
+   NAV / STATUS
+===================== */
+.row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
-p{
-  margin:10px 0;
+.badge {
+  border: 1px solid #222634;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
 }
 
-/* ===== MESSAGES ===== */
-#msg,
-#msgApp{
-  margin-top:12px;
-  font-size:14px;
-  white-space:pre-wrap;
+/* =====================
+   TABLE
+===================== */
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #222634;
+  border-radius: 12px;
+  margin-top: 10px;
 }
 
-/* ===== UTIL ===== */
-.hidden{
-  display:none;
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 8px;
+  border-bottom: 1px solid #222634;
+  text-align: left;
+}
+
+th {
+  font-size: 12px;
+  color: #ffffff;
+}
+
+.right {
+  text-align: right;
+}
+
+/* =====================
+   LOGIN
+===================== */
+.center {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.max420 {
+  max-width: 420px;
+  width: 100%;
+}
+
+#status,
+#loginMsg {
+  margin-top: 10px;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.ok {
+  color: #a7f3c6;
+}
+
+.err {
+  color: #ffd27a;
 }
