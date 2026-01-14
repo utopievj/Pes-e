@@ -13,76 +13,88 @@
 <div class="wrap">
   <div class="card">
 
-    <h1>Pesée</h1>
+    <!-- ===== NAV ===== -->
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+      <button onclick="showPesee()">PESÉE</button>
+      <button onclick="showHistorique()">HISTORIQUE</button>
+    </div>
 
-    <div id="status">Prêt.</div>
+    <!-- ================= PAGE PESÉE ================= -->
+    <div id="pagePesee">
 
-    <div class="grid">
-      <div class="col-4">
-        <label>Ville</label>
-        <select id="ville">
-          <option>Assat</option>
-          <option>Toulouse</option>
-          <option>Pau</option>
-        </select>
-      </div>
+      <h1>Pesée</h1>
+      <div id="status">Prêt.</div>
 
-      <div class="col-4">
-        <label>Type</label>
-        <select id="type">
-          <option value="PAM">PAM</option>
-          <option value="ECRAN">Écran</option>
-          <option value="ASL">ASL</option>
-          <option value="ABJ">ABJ</option>
-          <option value="F">Frigo</option>
-          <option value="HF">Hors froid</option>
-        </select>
-      </div>
-
-      <div class="col-2">
-        <label>Nb bacs (1 à 4)</label>
-        <input id="nb" type="number" min="1" max="4" step="1" value="1" inputmode="numeric">
-      </div>
-
-      <div class="col-2">
-        <label>Poids brut (kg)</label>
-        <input id="brut" type="number" step="0.1" inputmode="decimal">
-      </div>
-
-      <div class="col-12">
-        <div class="big">
-          Net : <span id="net">0</span> kg
+      <div class="grid">
+        <div class="col-4">
+          <label>Ville</label>
+          <select id="ville">
+            <option>Assat</option>
+            <option>Toulouse</option>
+            <option>Pau</option>
+          </select>
         </div>
-      </div>
 
-      <div class="col-12">
-        <button onclick="enregistrer()">ENREGISTRER</button>
+        <div class="col-4">
+          <label>Type</label>
+          <select id="type">
+            <option value="PAM">PAM</option>
+            <option value="ECRAN">Écran</option>
+            <option value="ASL">ASL</option>
+            <option value="ABJ">ABJ</option>
+            <option value="F">Frigo</option>
+            <option value="HF">Hors froid</option>
+          </select>
+        </div>
+
+        <div class="col-2">
+          <label>Nb bacs (1 à 4)</label>
+          <input id="nb" type="number" min="1" max="4" step="1" value="1" inputmode="numeric">
+        </div>
+
+        <div class="col-2">
+          <label>Poids brut (kg)</label>
+          <input id="brut" type="number" step="0.1" inputmode="decimal">
+        </div>
+
+        <div class="col-12">
+          <div class="big">
+            Net : <span id="net">0</span> kg
+          </div>
+        </div>
+
+        <div class="col-12">
+          <button onclick="enregistrer()">ENREGISTRER</button>
+        </div>
       </div>
     </div>
 
-    <hr>
+    <!-- ================= PAGE HISTORIQUE ================= -->
+    <div id="pageHistorique" style="display:none">
 
-    <h2>Historique</h2>
+      <h1>Historique</h1>
 
-    <div class="tableWrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Ville</th>
-            <th>Type</th>
-            <th class="right">Nb</th>
-            <th class="right">Net</th>
-          </tr>
-        </thead>
-        <tbody id="historique"></tbody>
-      </table>
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Ville</th>
+              <th>Type</th>
+              <th class="right">Nb</th>
+              <th class="right">Net</th>
+            </tr>
+          </thead>
+          <tbody id="historique"></tbody>
+        </table>
+      </div>
+
     </div>
 
   </div>
 </div>
 
-<!-- LOGIQUE PESÉE -->
+<!-- ===== LOGIQUE PESÉE ===== -->
 <script>
 const TARE = {
   PAM: 59,
@@ -92,6 +104,17 @@ const TARE = {
   F: 0,
   HF: 0
 };
+
+function showPesee(){
+  document.getElementById("pagePesee").style.display = "block";
+  document.getElementById("pageHistorique").style.display = "none";
+}
+
+function showHistorique(){
+  document.getElementById("pagePesee").style.display = "none";
+  document.getElementById("pageHistorique").style.display = "block";
+  afficherHistorique();
+}
 
 function normalizeNb() {
   let nb = parseInt(document.getElementById("nb").value || 1);
@@ -136,7 +159,7 @@ function enregistrer() {
 }
 </script>
 
-<!-- HISTORIQUE EXTERNE -->
+<!-- ===== HISTORIQUE ===== -->
 <script src="historique.js"></script>
 
 </body>
