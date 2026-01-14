@@ -40,8 +40,16 @@
       </div>
 
       <div class="col-2">
-        <label>Nb bacs</label>
-        <input id="nb" type="number" min="1" step="1" value="1">
+        <label>Nb bacs (1 à 4)</label>
+        <input
+          id="nb"
+          type="number"
+          min="1"
+          max="4"
+          step="1"
+          value="1"
+          inputmode="numeric"
+        >
       </div>
 
       <div class="col-2">
@@ -93,15 +101,23 @@ const TARE = {
   HF: 0
 };
 
+/* ===== NORMALISATION NB BACS (1 → 4) ===== */
+function normalizeNb() {
+  let nb = parseInt(document.getElementById("nb").value || 1);
+
+  if (nb < 1) nb = 1;
+  if (nb > 4) nb = 4;
+
+  document.getElementById("nb").value = nb;
+  return nb;
+}
+
 /* ===== CALCUL NET ===== */
 function calc() {
   const type = document.getElementById("type").value;
-
-  let nb = parseInt(document.getElementById("nb").value || 1);
-  if (nb < 1) nb = 1;
-  document.getElementById("nb").value = nb;
-
+  const nb = normalizeNb();
   const brut = Number(document.getElementById("brut").value || 0);
+
   const tare = (TARE[type] || 0) * nb;
   const net = Math.max(0, brut - tare);
 
@@ -137,7 +153,7 @@ function enregistrer() {
 
   const ville = document.getElementById("ville").value;
   const type = document.getElementById("type").value;
-  const nb = Number(document.getElementById("nb").value);
+  const nb = normalizeNb();
   const brut = Number(document.getElementById("brut").value);
   const net = Number(document.getElementById("net").textContent);
 
