@@ -1,41 +1,41 @@
-/* ===== HISTORIQUE LOCAL ===== */
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Historique</title>
+  <link rel="stylesheet" href="style.css">
+</head>
 
-const HISTO_KEY = "pesees";
+<body>
 
-function getHistorique() {
-  return JSON.parse(localStorage.getItem(HISTO_KEY) || "[]");
+<div class="card">
+  <h2>Historique</h2>
+
+  <div id="liste"></div>
+
+  <button class="secondary" onclick="location.href='index.html'">
+    ⬅ Retour à la pesée
+  </button>
+</div>
+
+<script>
+const hist = JSON.parse(localStorage.getItem("historique") || "[]");
+const div = document.getElementById("liste");
+
+if(!hist.length){
+  div.innerHTML = "<p>Aucune donnée enregistrée</p>";
+}else{
+  div.innerHTML = hist.map(h => `
+    <p>
+      <b>${h.date}</b><br>
+      ${h.ville} – ${h.type} – ${h.nb} bacs<br>
+      Brut: ${h.brut} kg | Net: <b>${h.net} kg</b>
+    </p>
+    <hr>
+  `).join("");
 }
+</script>
 
-function saveHistorique(data) {
-  localStorage.setItem(HISTO_KEY, JSON.stringify(data));
-}
-
-function ajouterHistorique(ligne) {
-  const data = getHistorique();
-  data.unshift(ligne);
-  saveHistorique(data);
-  afficherHistorique();
-}
-
-function afficherHistorique() {
-  const tbody = document.getElementById("historique");
-  if (!tbody) return;
-
-  const data = getHistorique();
-  tbody.innerHTML = "";
-
-  data.forEach(ligne => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${new Date(ligne.date).toLocaleString()}</td>
-        <td>${ligne.ville}</td>
-        <td>${ligne.type}</td>
-        <td class="right">${ligne.nb}</td>
-        <td class="right">${ligne.net}</td>
-      </tr>
-    `;
-  });
-}
-
-/* INIT */
-document.addEventListener("DOMContentLoaded", afficherHistorique);
+</body>
+</html>
