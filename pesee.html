@@ -31,6 +31,7 @@
         <label>Type</label>
         <select id="type">
           <option value="PAM">PAM</option>
+          <option value="ECRAN">Écran</option>
           <option value="ASL">ASL</option>
           <option value="ABJ">ABJ</option>
           <option value="F">Frigo</option>
@@ -82,19 +83,22 @@
 </div>
 
 <script>
-/* ===== CONFIG ===== */
+/* ===== CONFIG TARES ===== */
 const TARE = {
   PAM: 59,
+  ECRAN: 59,
   ASL: 45,
   ABJ: 43,
   F: 0,
   HF: 0
 };
 
-/* ===== CALCUL ===== */
+/* ===== CALCUL NET ===== */
 function calc() {
   const type = document.getElementById("type").value;
-  const nb = Math.max(1, parseInt(document.getElementById("nb").value || 1));
+
+  let nb = parseInt(document.getElementById("nb").value || 1);
+  if (nb < 1) nb = 1;
   document.getElementById("nb").value = nb;
 
   const brut = Number(document.getElementById("brut").value || 0);
@@ -104,7 +108,7 @@ function calc() {
   document.getElementById("net").textContent = net.toFixed(1);
 }
 
-["type","nb","brut"].forEach(id=>{
+["type", "nb", "brut"].forEach(id => {
   document.getElementById(id).addEventListener("input", calc);
 });
 
@@ -114,19 +118,20 @@ function chargerHistorique() {
   const tbody = document.getElementById("historique");
   tbody.innerHTML = "";
 
-  data.forEach(l=>{
+  data.forEach(ligne => {
     tbody.innerHTML += `
       <tr>
-        <td>${new Date(l.date).toLocaleString()}</td>
-        <td>${l.ville}</td>
-        <td>${l.type}</td>
-        <td class="right">${l.nb}</td>
-        <td class="right">${l.net}</td>
+        <td>${new Date(ligne.date).toLocaleString()}</td>
+        <td>${ligne.ville}</td>
+        <td>${ligne.type}</td>
+        <td class="right">${ligne.nb}</td>
+        <td class="right">${ligne.net}</td>
       </tr>
     `;
   });
 }
 
+/* ===== ENREGISTRER ===== */
 function enregistrer() {
   calc();
 
@@ -136,8 +141,8 @@ function enregistrer() {
   const brut = Number(document.getElementById("brut").value);
   const net = Number(document.getElementById("net").textContent);
 
-  if (!brut) {
-    alert("Entre un poids brut");
+  if (!brut || brut <= 0) {
+    alert("Entre un poids brut valide");
     return;
   }
 
@@ -158,7 +163,7 @@ function enregistrer() {
   chargerHistorique();
 }
 
-/* INIT */
+/* ===== INIT ===== */
 calc();
 chargerHistorique();
 </script>
