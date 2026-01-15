@@ -3,12 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>PesÃ©e</title>
+  <title>Pesée</title>
 
-  <!-- CSS sÃ©parÃ© -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- Supabase -->
+  <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -19,13 +18,23 @@
   <div class="card max420">
     <h2>Connexion</h2>
 
+    <!--  Diagnostics -->
+    <div id="diag" class="diag">
+      <div id="d_js"> JS…</div>
+      <div id="d_sdk"> Supabase SDK…</div>
+      <div id="d_api"> API Supabase…</div>
+    </div>
+
     <label>Email</label>
-    <input id="email" type="email">
+    <input id="email" type="email" autocomplete="username" inputmode="email">
 
     <label>Mot de passe</label>
-    <input id="password" type="password">
+    <input id="password" type="password" autocomplete="current-password">
 
-    <button id="btnLogin">SE CONNECTER</button>
+    <div class="row" style="gap:10px;margin-top:12px;flex-wrap:wrap">
+      <button id="btnLogin" type="button">SE CONNECTER</button>
+      <button id="btnReset" type="button" class="danger">RESET CACHE</button>
+    </div>
 
     <div id="loginMsg" class="err"></div>
   </div>
@@ -36,57 +45,57 @@
   <div class="wrap">
     <div class="card">
 
-      <!-- NAV -->
-      <div class="row">
-        <button id="btnShowPesee">âž• PesÃ©e</button>
-        <button id="btnShowHist">ðŸ“œ Historique</button>
-        <button class="danger" id="btnLogout">ðŸšª DÃ©connexion</button>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button id="btnShowPesee" type="button"> Pesée</button>
+        <button id="btnShowHist" type="button"> Historique</button>
+        <button id="btnRefresh" type="button"> Rafraîchir</button>
+        <button id="btnLogout" type="button" class="danger"> Déconnexion</button>
         <span class="badge" id="userBadge"></span>
       </div>
 
-      <div id="status"></div>
+      <div id="status" class="status">Prêt.</div>
 
       <!-- PAGE PESEE -->
       <div id="pagePesee">
-        <h2>PesÃ©e</h2>
+        <h2>Pesée</h2>
 
         <div class="grid">
           <div class="col-4">
             <label>Ville</label>
-            <input id="ville">
+            <input id="ville" placeholder="Ex: Toulouse">
           </div>
 
           <div class="col-4">
             <label>Type</label>
             <select id="type">
               <option value="PAM">PAM (59 kg)</option>
-              <option value="ECRAN">Ã‰cran (59 kg)</option>
+              <option value="ECRAN">Écran (59 kg)</option>
               <option value="ASL">ASL (45 kg)</option>
               <option value="ABJ">ABJ (43 kg)</option>
             </select>
           </div>
 
           <div class="col-2">
-            <label>Nb bacs (1â€“4)</label>
-            <input id="nb" type="number" min="1" max="4" value="1">
+            <label>Nb bacs (1–4)</label>
+            <input id="nb" type="number" min="1" max="4" step="1" value="1">
           </div>
 
           <div class="col-2">
             <label>Brut (kg)</label>
-            <input id="brut" type="number" step="0.1">
+            <input id="brut" type="number" step="0.1" inputmode="decimal" placeholder="Ex: 120.5">
           </div>
 
           <div class="col-12">
-            <div class="big">Net : <span id="net">0</span> kg</div>
+            <div class="big">Net : <span id="net">0.0</span> kg</div>
           </div>
 
           <div class="col-12">
-            <button id="btnSave">ENREGISTRER</button>
+            <button id="btnSave" type="button">ENREGISTRER</button>
           </div>
         </div>
       </div>
 
-      <!-- PAGE HISTORIQUE -->
+      <!-- PAGE HIST -->
       <div id="pageHist" style="display:none">
         <h2>Historique</h2>
 
@@ -104,156 +113,285 @@
             <tbody id="hist"></tbody>
           </table>
         </div>
+
       </div>
 
     </div>
   </div>
 </div>
-
 <script>
 /* =========================
    CONFIG SUPABASE
+    OBLIGATOIRE : remplace la clé anon
 ========================= */
 const SUPABASE_URL = "https://dzfokswsmkvhjhziqakj.supabase.co";
-const SUPABASE_KEY = "REMPLACE_TA_CLE_ANON_ICI";
-
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+const SUPABASE_KEY = "COLLE_ICI_TA_CLE_ANON_SUPABASE";
 
 /* =========================
-   CONSTANTES
+   HELPERS UI
 ========================= */
-const TARE = {
-  PAM: 59,
-  ECRAN: 59,
-  ASL: 45,
-  ABJ: 43
-};
+const $ = (id) => document.getElementById(id);
+const setLoginMsg = (msg) => { $("loginMsg").textContent = msg || ""; };
+const setStatus = (msg) => { $("status").textContent = msg || ""; };
 
-const $ = id => document.getElementById(id);
+function mark(id, ok, text){
+  const el = $(id);
+  if(!el) return;
+  el.textContent = (ok ? " " : " ") + text;
+  el.style.color = ok ? "#a7f3c6" : "#ffd27a";
+}
+
+/* =========================
+   CAPTURE TOUTES ERREURS
+========================= */
+window.addEventListener("error", (e)=>{
+  setLoginMsg(" Erreur JS: " + (e?.message || "inconnue"));
+});
+window.addEventListener("unhandledrejection", (e)=>{
+  const msg = e?.reason?.message || String(e?.reason || e);
+  setLoginMsg(" Promesse rejetée: " + msg);
+});
+
+/* =========================
+   INIT / DIAGNOSTIC
+========================= */
+mark("d_js", true, "JS OK");
+
+let supabase = null;
+
+(function init(){
+  // SDK chargé ?
+  if(!window.supabase || !window.supabase.createClient){
+    mark("d_sdk", false, "Supabase SDK NON chargé (cdn bloqué?)");
+    setLoginMsg(" Le SDK Supabase ne charge pas. Essaie un autre réseau / désactive bloqueurs.");
+    return;
+  }
+  mark("d_sdk", true, "Supabase SDK chargé");
+
+  // clé remplacée ?
+  if(!SUPABASE_KEY || SUPABASE_KEY.includes("COLLE_ICI")){
+    mark("d_api", false, "Clé ANON manquante");
+    setLoginMsg(" Tu n’as pas collé la clé ANON dans SUPABASE_KEY.");
+    return;
+  }
+
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // test API health
+  testHealth();
+})();
+
+async function testHealth(){
+  try{
+    const url = SUPABASE_URL + "/auth/v1/health";
+    const r = await fetch(url, { method:"GET" });
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    mark("d_api", true, "API Supabase OK");
+  }catch(e){
+    mark("d_api", false, "API Supabase KO");
+    const msg = (e?.message || String(e));
+
+    // messages utiles
+    setLoginMsg(
+      " Impossible de contacter Supabase.\n" +
+      "Erreur: " + msg + "\n\n" +
+      "Causes probables:\n" +
+      "• DNS privé / AdGuard / bloqueur / antivirus\n" +
+      "• Réseau filtré (wifi entreprise)\n" +
+      "• Problème de connexion\n\n" +
+      "Test à faire:\n" +
+      SUPABASE_URL + "/auth/v1/health"
+    );
+  }
+}
 
 /* =========================
    CALCUL NET
 ========================= */
-function calc() {
-  let nb = Math.min(4, Math.max(1, parseInt($("nb").value || 1)));
-  $("nb").value = nb;
+const TARE = { PAM:59, ECRAN:59, ASL:45, ABJ:43 };
 
-  let brut = parseFloat($("brut").value || 0);
-  let type = $("type").value;
+function calc(){
+  let nb = parseInt($("nb").value || "1", 10);
+  if(!Number.isFinite(nb)) nb = 1;
+  if(nb < 1) nb = 1;
+  if(nb > 4) nb = 4;
+  $("nb").value = String(nb);
 
-  let net = Math.max(0, brut - (TARE[type] * nb));
+  let brut = parseFloat(String($("brut").value || "0").replace(",", "."));
+  if(!Number.isFinite(brut)) brut = 0;
+
+  const type = $("type").value;
+  const net = Math.max(0, brut - (TARE[type] * nb));
   $("net").textContent = net.toFixed(1);
-
   return net;
 }
+["input","change"].forEach(ev=>{
+  $("nb").addEventListener(ev, calc);
+  $("brut").addEventListener(ev, calc);
+  $("type").addEventListener(ev, calc);
+});
 
-$("nb").oninput =
-$("brut").oninput =
-$("type").onchange = calc;
+/* =========================
+   RESET CACHE
+========================= */
+$("btnReset").addEventListener("click", ()=>{
+  localStorage.clear();
+  sessionStorage.clear();
+  setLoginMsg(" Cache supprimé. Recharge la page (F5).");
+});
+
+/* =========================
+   NAV
+========================= */
+$("btnShowPesee").addEventListener("click", ()=>{
+  $("pagePesee").style.display = "block";
+  $("pageHist").style.display = "none";
+});
+
+$("btnShowHist").addEventListener("click", ()=>{
+  $("pagePesee").style.display = "none";
+  $("pageHist").style.display = "block";
+  loadHist();
+});
+
+$("btnRefresh").addEventListener("click", ()=>{
+  loadHist();
+});
 
 /* =========================
    LOGIN
 ========================= */
-$("btnLogin").onclick = async () => {
-  $("loginMsg").textContent = "";
+$("btnLogin").addEventListener("click", async ()=>{
+  try{
+    setLoginMsg("");
+    if(!supabase) throw new Error("Supabase non initialisé (SDK/clé/API)");
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: $("email").value,
-    password: $("password").value
-  });
+    const email = $("email").value.trim();
+    const password = $("password").value;
 
-  if (error) {
-    $("loginMsg").textContent = error.message;
-    return;
+    if(!email || !password){
+      setLoginMsg(" Mets email + mot de passe.");
+      return;
+    }
+
+    // test health avant login
+    await testHealth();
+
+    setLoginMsg("Connexion…");
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if(error) throw error;
+
+    $("loginScreen").style.display = "none";
+    $("app").style.display = "block";
+    $("userBadge").textContent = "Connecté : " + (data?.user?.email || email);
+
+    setStatus(" Connecté");
+    calc();
+    loadHist();
+  }catch(e){
+    const msg = e?.message || String(e);
+    setLoginMsg(" " + msg);
   }
-
-  $("loginScreen").style.display = "none";
-  $("app").style.display = "block";
-  $("userBadge").textContent = data.user.email;
-
-  loadHist();
-};
+});
 
 /* =========================
    LOGOUT
 ========================= */
-$("btnLogout").onclick = async () => {
-  await supabase.auth.signOut();
+$("btnLogout").addEventListener("click", async ()=>{
+  try{
+    await supabase?.auth?.signOut();
+  }catch{}
   location.reload();
-};
+});
 
 /* =========================
-   ENREGISTRER PESEE
+   SAVE
 ========================= */
-$("btnSave").onclick = async () => {
-  const net = calc();
+$("btnSave").addEventListener("click", async ()=>{
+  try{
+    if(!supabase) throw new Error("Supabase non initialisé");
+    const net = calc();
+    const ville = $("ville").value.trim();
+    const type = $("type").value;
+    const nb = parseInt($("nb").value, 10);
+    const brut = parseFloat(String($("brut").value||"0").replace(",", "."));
+    const tare = (TARE[type] * nb);
 
-  const { error } = await supabase
-    .from("pesees")
-    .insert({
-      ville: $("ville").value,
-      type: $("type").value,
-      nb: $("nb").value,
-      brut: $("brut").value,
-      tare: TARE[$("type").value] * $("nb").value,
-      net: net
+    if(!ville) return setStatus(" Ville obligatoire");
+    if(!Number.isFinite(brut) || brut <= 0) return setStatus(" Brut invalide");
+    if(brut < tare) return setStatus(" Brut < tare");
+
+    setStatus("Enregistrement…");
+    const { error } = await supabase.from("pesees").insert({
+      ville, type, nb, brut, tare, net
     });
+    if(error) throw error;
 
-  if (error) {
-    $("status").textContent = error.message;
-  } else {
-    $("status").textContent = "âœ” PesÃ©e enregistrÃ©e";
+    setStatus(" Enregistré");
     $("brut").value = "";
     calc();
     loadHist();
+  }catch(e){
+    setStatus(" " + (e?.message || String(e)));
   }
-};
+});
 
 /* =========================
-   HISTORIQUE
+   HIST
 ========================= */
-async function loadHist() {
-  const { data, error } = await supabase
-    .from("pesees")
-    .select("*")
-    .order("created_at", { ascending: false });
+async function loadHist(){
+  try{
+    if(!supabase) return;
 
-  if (error) {
-    $("status").textContent = error.message;
-    return;
+    const { data, error } = await supabase
+      .from("pesees")
+      .select("created_at, ville, type, nb, net")
+      .order("created_at", { ascending:false })
+      .limit(300);
+
+    if(error) throw error;
+
+    const tb = $("hist");
+    tb.innerHTML = "";
+
+    if(!data || !data.length){
+      tb.innerHTML = `<tr><td colspan="5">Aucune donnée</td></tr>`;
+      return;
+    }
+
+    for(const r of data){
+      tb.innerHTML += `
+        <tr>
+          <td>${new Date(r.created_at).toLocaleString()}</td>
+          <td>${r.ville}</td>
+          <td>${r.type}</td>
+          <td class="right">${r.nb}</td>
+          <td class="right">${Number(r.net).toFixed(1)}</td>
+        </tr>
+      `;
+    }
+  }catch(e){
+    setStatus(" HIST: " + (e?.message || String(e)));
   }
-
-  $("hist").innerHTML = "";
-
-  data.forEach(r => {
-    $("hist").innerHTML += `
-      <tr>
-        <td>${new Date(r.created_at).toLocaleString()}</td>
-        <td>${r.ville}</td>
-        <td>${r.type}</td>
-        <td class="right">${r.nb}</td>
-        <td class="right">${r.net}</td>
-      </tr>
-    `;
-  });
 }
 
 /* =========================
-   NAVIGATION
+   AUTO SESSION
 ========================= */
-$("btnShowPesee").onclick = () => {
-  $("pagePesee").style.display = "block";
-  $("pageHist").style.display = "none";
-};
-
-$("btnShowHist").onclick = () => {
-  $("pagePesee").style.display = "none";
-  $("pageHist").style.display = "block";
-  loadHist();
-};
+(async ()=>{
+  calc();
+  try{
+    if(!supabase) return;
+    const { data } = await supabase.auth.getUser();
+    if(data?.user){
+      $("loginScreen").style.display = "none";
+      $("app").style.display = "block";
+      $("userBadge").textContent = "Connecté : " + data.user.email;
+      loadHist();
+    }
+  }catch{}
+})();
 </script>
 
 </body>
